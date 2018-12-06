@@ -624,6 +624,8 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         #points in camera space to points in NDC
         near = cam.data.clip_start
         far = cam.data.clip_end
+        sx = 2 * cam.data.shift_x
+        sy = 2 * cam.data.shift_y
         rs = bpy.context.scene.render
         rx = rs.resolution_x
         ry = rs.resolution_y
@@ -633,11 +635,13 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
             aspect = rx / float(ry)
             h = math.tan(0.5 * fov)
             w = aspect * h
+            sx /= aspect
         else:
             fov = cam.data.angle_x
             aspect = ry / float(rx)
             w = math.tan(0.5 * fov)
             h = aspect * w
+            sy /= aspect
         
         pm = mathutils.Matrix()
         pm[0][0] = 1 / w
@@ -662,7 +666,7 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
             #the vert in normalized device coordinates
             w = vec[3]
             vec = [x / w for x in vec]
-            returnVerts.append((vec[0], vec[1], vec[2]))
+            returnVerts.append((vec[0] - sx, vec[1] - sy, vec[2]))
         
         return returnVerts
    
@@ -761,6 +765,8 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         projector.select_set(False)
         projector.scale = [0.1, 0.1, 0.1]
         projector.data.lens = camera.data.lens
+        projector.data.shift_x = camera.data.shift_x
+        projector.data.shift_y = camera.data.shift_y
         projector.data.sensor_width = camera.data.sensor_width
         projector.data.sensor_height = camera.data.sensor_height
         projector.data.sensor_fit = camera.data.sensor_fit
