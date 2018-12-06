@@ -810,6 +810,7 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         bpy.ops.object.modifier_add(type='UV_PROJECT')
         modifier = mesh.modifiers[-1]
         modifier.aspect_x = bpy.context.scene.render.resolution_x / float(bpy.context.scene.render.resolution_y)
+        modifier.aspect_y = bpy.context.scene.render.resolution_y / float(bpy.context.scene.render.resolution_x)
         modifier.image = img
         modifier.use_image_override = True
         modifier.projectors[0].object = projector
@@ -1988,7 +1989,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
         self.report({'INFO'}, "Camera focal length set to " + str(fMm))
         
         #move principal point of the blender camera
-        r = imageWidth / float(imageHeight)
+        r = max(imageWidth / float(imageHeight), 1)
         cam.data.shift_x = -1 * P[0] / r
         cam.data.shift_y = -1 * P[1] / r
         
