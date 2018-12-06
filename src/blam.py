@@ -23,7 +23,7 @@ bl_info = { \
     'name': 'BLAM - The Blender camera calibration toolkit',
     'author': 'Per Gantelius',
     'version': (0, 0, 6),
-    'blender': (2, 6, 2),
+    'blender': (2, 80, 0),
     'location': 'Move Clip Editor > Tools Panel > Static Camera Calibration and 3D View > Tools Panel > Photo Modeling Tools',
     'description': 'Reconstruction of 3D geometry and estimation of camera orientation and focal length based on photographs.',
     'tracker_url': 'https://github.com/stuffmatic/blam/issues',
@@ -423,15 +423,6 @@ def arePythonMatricesRowMajor():
     return int(numberString) >= 42816
 '''
 
-#helper function that returns the faces of a mesh. in bmesh builds,
-#this is a list of polygons, and in pre-bmesh builds this is a list
-#of triangles and quads
-def getMeshFaces(meshObject):
-    try:
-        return meshObject.data.faces
-    except:
-        return meshObject.data.polygons
-
 '''
 PROJECTOR CALIBRATION STUFF
 '''
@@ -599,23 +590,23 @@ class SetLineOfSightScalePivot(bpy.types.Operator):
         selStates = []
         objs = bpy.context.scene.objects
         for obj in objs:
-            selStates.append(obj.select)
-            obj.select = False
+            selStates.append(obj.select_get())
+            obj.select_set(False)
         
         #select the camera
-        bpy.context.scene.camera.select = True
+        bpy.context.scene.camera.select_set(True)
         
         #snap the cursor to the camer
         bpy.ops.view3d.snap_cursor_to_selected()
         
         #set the cursor to be the pivot
-        space = bpy.context.area.spaces.active
-        print(space.pivot_point)
-        space.pivot_point = 'CURSOR'
+        tool_settings = bpy.context.scene.tool_settings
+        print(tool_settings.transform_pivot_point)
+        tool_settings.transform_pivot_point = 'CURSOR'
         
         for i in range(len(objs)):
             obj = objs[i]
-            obj.select = selStates[i]
+            obj.select_set(selStates[i])
         
         return{'FINISHED'}
         
@@ -665,9 +656,9 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
             #the vert in local coordinates
             vec = v.co.to_4d()    
             #the vert in world coordinates
-            vec = mesh.matrix_world * vec
+            vec = mesh.matrix_world @ vec
             #the vert in clip coordinates
-            vec = pm * cam.matrix_world.inverted() * vec
+            vec = pm @ cam.matrix_world.inverted() @ vec
             #the vert in normalized device coordinates
             w = vec[3]
             vec = [x / w for x in vec]
@@ -691,47 +682,47 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         bpy.ops.object.mode_set(mode='OBJECT')
         
         #set uvs to match the vertex x and y components in NDC 
-        isBmesh = True
-        try:
-            f = mesh.data.faces
-            isBmesh = False
-        except:
-            pass
-                
-        if isBmesh:
-            loops = mesh.data.loops
-            uvLoops = mesh.data.uv_layers[0].data
-            for loop, uvLoop in zip(loops, uvLoops):    
-                vIdx = loop.vertex_index
-                print("loop", loop, "vertex", loop.vertex_index, "uvLoop", uvLoop)                    
-                ndcVert = ndcVerts[vIdx]
-                uvLoop.uv[0] = 0.5 * (ndcVert[0] + 1.0)
-                uvLoop.uv[1] = 0.5 * (ndcVert[1] + 1.0)
-            
-        else:
-            assert(len(getMeshFaces(mesh)) == len(mesh.data.uv_textures[0].data))
-            for meshFace, uvFace in zip(getMeshFaces(mesh), mesh.data.uv_textures[0].data):
-                faceVerts = [ndcVerts[i] for i in meshFace.vertices]
-            
-                for i in range(len(uvFace.uv)):
-                    uvFace.uv[i][0] = 0.5 * (faceVerts[i][0] + 1.0)
-                    uvFace.uv[i][1] = 0.5 * (faceVerts[i][1] + 1.0)
+        loops = mesh.data.loops
+        uvLoops = mesh.data.uv_layers[0].data
+        for loop, uvLoop in zip(loops, uvLoops):    
+            vIdx = loop.vertex_index
+            print("loop", loop, "vertex", loop.vertex_index, "uvLoop", uvLoop)                    
+            ndcVert = ndcVerts[vIdx]
+            uvLoop.uv[0] = 0.5 * (ndcVert[0] + 1.0)
+            uvLoop.uv[1] = 0.5 * (ndcVert[1] + 1.0)
         
+    def setupNodeMaterial(self, material, image):
+        material.use_nodes = True
+        tree = material.node_tree
+
+        tree.nodes.clear()
+        tree.links.clear()
+        nodes = []
+
+        for bl_idname, location in [('ShaderNodeOutputMaterial', (151, 64)),
+                                    ('ShaderNodeEmission', (-68, 52)),
+                                    ('ShaderNodeTexImage', (-408, 142))]:
+            node = tree.nodes.new(bl_idname)
+            nodes.append(node)
+            node.location = mathutils.Vector(location)
+
+        for to_node, to_socket, from_node, from_socket in [(0, 0, 1, 0), (1, 0, 2, 0)]:
+            link = tree.links.new(nodes[to_node].inputs[to_socket], nodes[from_node].outputs[from_socket])
+
+        nodes[2].image = image
+
     def performSimpleProjection(self, camera, mesh, img):
         if len(mesh.material_slots) == 0:
             mat = bpy.data.materials.new(self.materialName)
             mesh.data.materials.append(mat)
         else:
             mat = mesh.material_slots[0].material   
-        mat.use_shadeless = True
-        mat.use_face_texture = True
+
+        self.setupNodeMaterial(mat, img)
         
         
                 
         self.addUVsProjectedFromView(mesh)
-        
-        for f in mesh.data.uv_textures[0].data:
-            f.image = img
     
     def performHighQualityProjection(self, camera, mesh, img):
         if len(mesh.material_slots) == 0:
@@ -739,8 +730,8 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
             mesh.data.materials.append(mat)
         else:
             mat = mesh.material_slots[0].material
-        mat.use_shadeless = True
-        mat.use_face_texture = True 
+
+        self.setupNodeMaterial(mat, img)
         
         
         
@@ -764,10 +755,10 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
             bpy.ops.object.camera_add()
             projector = bpy.context.active_object
         
-        bpy.context.scene.objects.active = projector
+        bpy.context.view_layer.objects.active = projector
         projector.name = mesh.name + '_' + self.projectorName
         projector.matrix_world = camera.matrix_world
-        projector.select = False
+        projector.select_set(False)
         projector.scale = [0.1, 0.1, 0.1]
         projector.data.lens = camera.data.lens
         projector.data.sensor_width = camera.data.sensor_width
@@ -776,21 +767,21 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         
         #parent the projector to the mesh for convenience
         for obj in bpy.context.scene.objects:
-            obj.select = False
+            obj.select_set(False)
         
-        projector.select = True
-        bpy.context.scene.objects.active = mesh
+        projector.select_set(True)
+        bpy.context.view_layer.objects.active = mesh
         #bpy.ops.object.parent_set()
         
         #lock the projector to the mesh
-        #bpy.context.scene.objects.active = projector
+        #bpy.context.view_layer.objects.active = projector
         #bpy.ops.object.constraint_add(type='COPY_LOCATION')
         #projector.constraints[-1].target = mesh
         
         #create a simple subdivision modifier on the mesh object. 
         #this subdivision is what alleviates the texture sampling
         #artefacts.
-        bpy.context.scene.objects.active = mesh
+        bpy.context.view_layer.objects.active = mesh
         levels = 3
         bpy.ops.object.modifier_add()
                 
@@ -804,17 +795,15 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         bpy.ops.object.modifier_add(type='UV_PROJECT')
         modifier = mesh.modifiers[-1]
         modifier.aspect_x = bpy.context.scene.render.resolution_x / float(bpy.context.scene.render.resolution_y)
-        modifier.image = img
-        modifier.use_image_override = True
         modifier.projectors[0].object = projector
-        modifier.uv_layer = mesh.data.uv_textures[0].name
+        modifier.uv_layer = mesh.data.uv_layers[0].name
                 
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.object.mode_set(mode='OBJECT')
     
     def prepareMesh(self, mesh):
         #remove all uv layers
-        while len(mesh.data.uv_textures) > 0:
+        while len(mesh.data.uv_layers) > 0:
             bpy.ops.mesh.uv_texture_remove()
         
         #remove all modifiers
@@ -845,12 +834,12 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         
         activeSpace = bpy.context.area.spaces.active
         
-        if len(activeSpace.background_images) == 0:
+        if len(camera.data.background_images) == 0:
             self.report({'ERROR'}, "No backround images of clips found.")
             return{'CANCELLED'}
         
         #check what kind of background we're dealing with
-        bg = activeSpace.background_images[0]
+        bg = camera.data.background_images[0]
         if bg.image != None:
             img = bg.image
         elif bg.clip != None:
@@ -877,7 +866,7 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
             self.report({'ERROR'}, "Unknown projection method")
             return{'CANCELLED'}
         
-        activeSpace.viewport_shade = 'TEXTURED'
+        activeSpace.shading.type = 'MATERIAL'
         
         return{'FINISHED'}
 
@@ -907,9 +896,9 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
             #the vert in local coordinates
             vec = v.co.to_4d()    
             #the vert in world coordinates
-            vec = self.mesh.matrix_world * vec
+            vec = self.mesh.matrix_world @ vec
             #the vert in camera coordinates
-            vec = self.camera.matrix_world.inverted() * vec     
+            vec = self.camera.matrix_world.inverted() @ vec     
             
             ret.append(vec[0:3])
         return ret
@@ -1101,7 +1090,7 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
             #gather all faces containing the current edge
             facesContainingEdge = []
             
-            for f in getMeshFaces(inputMesh):
+            for f in inputMesh.data.polygons:
                 matchFound = False
                 fv = f.vertices
                 if len(fv) != 4:
@@ -1143,9 +1132,9 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         #where m is the number of faces (the depth factor for the first
         #face is set to 1)
         k1 = 1
-        firstFace = getMeshFaces(inputMesh)[0]
-        numFaces = len(getMeshFaces(inputMesh))
-        faces = [f for f in getMeshFaces(inputMesh)]
+        firstFace = inputMesh.data.polygons[0]
+        numFaces = len(inputMesh.data.polygons)
+        faces = [f for f in inputMesh.data.polygons]
         matrixRows = []
         rhRows = [] #rows of the right hand side vector
         vertsToMergeByOriginalIdx = {}
@@ -1312,7 +1301,7 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         ob = bpy.data.objects.new(name, me)    
         ob.show_name = True    
         # Link object to scene    
-        bpy.context.scene.objects.link(ob)    
+        bpy.context.collection.objects.link(ob)    
         verts = []
         faces = []
         idx = 0
@@ -1357,8 +1346,8 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         # Update mesh with new data    
         me.from_pydata(verts, [], faces)    
         me.update(calc_edges=True)
-        ob.select = True
-        bpy.context.scene.objects.active = ob
+        ob.select_set(True)
+        bpy.context.view_layer.objects.active = ob
 
         #finally remove doubles
         bpy.ops.object.mode_set(mode='EDIT')
@@ -1373,7 +1362,7 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         mm = inMesh.matrix_world
         for v in inMesh.data.vertices:
 
-            vCamSpace =  cmi * mm * v.co.to_4d()
+            vCamSpace =  cmi @ mm @ v.co.to_4d()
             for i in range(3):
                 inMeanPos[i] = inMeanPos[i] + vCamSpace[i] / float(len(inMesh.data.vertices))
         
@@ -1416,7 +1405,7 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
                     visitNeighbors(faces, n, visitedFaces)
         
         
-        faces = getMeshFaces(mesh)
+        faces = mesh.data.polygons
         if len(faces) == 1:
             return True
         visitedFaces = []
@@ -1425,7 +1414,7 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         return len(visitedFaces) == len(faces)
         
     def areAllMeshFacesQuads(self, mesh):
-        for f in getMeshFaces(mesh):
+        for f in mesh.data.polygons:
             if len(f.vertices) != 4:
                 return False
         return True
@@ -1452,7 +1441,7 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         if 'Mesh' not in str(type(self.mesh.data)):
             self.report({'ERROR'}, "The active object is not a mesh")
             return{'CANCELLED'}
-        if len(getMeshFaces(self.mesh)) == 0:
+        if len(self.mesh.data.polygons) == 0:
             self.report({'ERROR'}, "The mesh does not have any faces.")
             return{'CANCELLED'}    
         if not self.areAllMeshFacesQuads(self.mesh):
@@ -1471,7 +1460,7 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         computedCoordsByFace = {}
         quads = []
         #loop over all faces
-        for f in getMeshFaces(self.mesh):
+        for f in self.mesh.data.polygons:
             #if this is a quad face, process it
             if len(f.vertices) == 4:
                 assert(f not in computedCoordsByFace.keys())
@@ -1532,18 +1521,18 @@ class CameraCalibrationPanel(bpy.types.Panel):
         l.prop(scn, 'calibration_type')
         row = l.row()        
         box = row.box()
-        box.label("Line set 1 (first grease pencil layer)")
+        box.label(text="Line set 1 (first grease pencil layer)")
         box.prop(scn, 'vp1_axis')
         
         row = l.row()        
         box = row.box()
         singleVp = scn.calibration_type == 'one_vp'
         if singleVp:
-            box.label("Horizon line (second grease pencil layer)")
+            box.label(text="Horizon line (second grease pencil layer)")
             box.prop(scn, 'use_horizon_segment')
-            #box.label("An optional single line segment parallel to the horizon.")
+            #box.label(text="An optional single line segment parallel to the horizon.")
         else:
-            box.label("Line set 2 (second grease pencil layer)")
+            box.label(text="Line set 2 (second grease pencil layer)")
             box.prop(scn, 'vp2_axis')
         row = l.row()        
         #row.enabled = singleVp
@@ -1683,26 +1672,26 @@ class CameraCalibrationOperator(bpy.types.Operator):
         yn90Rot = mathutils.Euler((0, math.radians(-90.0), 0), 'XYZ').to_matrix().to_4x4()
         xn90Rot = mathutils.Euler((math.radians(-90.0), 0, 0), 'XYZ').to_matrix().to_4x4()
         
-        M =  x180Rot * M * z180Rot
+        M =  x180Rot @ M @ z180Rot
         
         if ax1 == 0 and ax2 == 1:
             #print("x,y")
             pass
         elif ax1 == 1 and ax2 == 0:
             #print("y, x")
-            M = z90Rot * M
+            M = z90Rot @ M
         elif ax1 == 0 and ax2 == 2:
             #print("x, z")
-            M = xn90Rot * M
+            M = xn90Rot @ M
         elif ax1 == 2 and ax2 == 0:
             #print("z, x")
-            M = xn90Rot * zn90Rot * M
+            M = xn90Rot @ zn90Rot @ M
         elif ax1 == 1 and ax2 == 2:
             #print("y, z")
-            M = yn90Rot * z90Rot * M
+            M = yn90Rot @ z90Rot @ M
         elif ax1 == 2 and ax2 == 1:
             #print("z, y")
-            M = yn90Rot * M
+            M = yn90Rot @ M
         
         return M
     
@@ -2031,13 +2020,28 @@ def initSceneProps():
     desc = "The method to use to project the image onto the mesh."
     bpy.types.Scene.projection_method = bpy.props.EnumProperty(items = [('simple','simple','Uses UV coordinates projected from the camera view. May give warping on large faces.'),('hq','high quality','Uses a UV Project modifier combined with a simple subdivision modifier.')],name = "Method", description=desc, default = ('hq'))
 
+classes = (
+    # ProjectorCalibrationPanel,
+    CreateProjectorCalibrationWindowOperator,
+    SetCalibrationWindowToClipEditor,
+    SetCalibrationWindowToView3D,
+    PhotoModelingToolsPanel,
+    SetLineOfSightScalePivot,
+    ProjectBackgroundImageOntoMeshOperator,
+    Reconstruct3DMeshOperator,
+    CameraCalibrationPanel,
+    CameraCalibrationOperator,
+)
+
 def register():
     initSceneProps()
-    bpy.utils.register_module(__name__)
+    for cls in classes:
+        bpy.utils.register_class(cls)
     
  
 def unregister():
-    bpy.utils.unregister_module(__name__)
+    for cls in classes:
+        bpy.utils.unregister_class(cls)
  
 if __name__ == "__main__":
     register()
