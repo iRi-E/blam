@@ -1,4 +1,8 @@
-🚨 __No longer maintained. Check out [fSpy](https://fspy.io) instead__ 🚨
+# BLAM for Blender 2.8
+
+The BLAM addon in this repository can be used with Blender 2.8 and also includes some bug fixes.
+
+Note that you can now use a standalone camera matching program [fSpy](https://fspy.io) written by BLAM's original author.
 
 ---
 
