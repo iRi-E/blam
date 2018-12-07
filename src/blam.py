@@ -623,6 +623,7 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
     bl_idname = "object.project_bg_onto_mesh"    
     bl_label = "Project background image onto mesh"
     bl_description = "Projects the current 3D view background image onto a mesh (the active object) from the active camera."    
+    bl_options = {'REGISTER', 'UNDO'}
     
     projectorName = 'tex_projector'
     materialName = 'cam_map_material'
@@ -892,6 +893,7 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
     bl_idname = "object.compute_depth_information"    
     bl_label = "Reconstruct 3D geometry"
     bl_description = "Reconstructs a 3D mesh with rectangular faces based on a mesh with faces lining up with the corresponding faces in the image. Relies on the active camera being properly calibrated."    
+    bl_options = {'REGISTER', 'UNDO'}
     
     def evalEq17(self, origin, p1, p2):
         a = [x - y for x, y in zip(origin, p1)]
@@ -1574,6 +1576,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
     bl_idname = "object.estimate_focal_length"    
     bl_label = "Calibrate active camera"
     bl_description = "Computes the focal length and orientation of the active camera based on the provided grease pencil strokes."
+    bl_options = {'REGISTER', 'UNDO'}
 
     def computeSecondVanishingPoint(self, Fu, f, P, horizonDir):
         '''Computes the coordinates of the second vanishing point
