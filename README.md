@@ -2,7 +2,10 @@
 
 The BLAM addon in this repository can be used with Blender 2.8 and also includes some bug fixes.
 
-Note that you can now use a standalone camera matching program [fSpy](https://fspy.io) written by BLAM's original author.
+* [Download](https://github.com/iRi-E/blam/releases)
+* [Bug reports](https://github.com/iRi-E/blam/issues)
+
+:rotating_light:You can now use a standalone camera matching program [fSpy](https://fspy.io) written by BLAM's original author:rotating_light:
 
 ---
 
