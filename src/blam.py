@@ -23,7 +23,7 @@ import math, cmath
 bl_info = {
     'name': 'BLAM for Blender 2.8 - The Blender camera calibration toolkit',
     'author': 'Per Gantelius, IRIE Shinsuke',
-    'version': (0, 0, 6),
+    'version': (0, 6, 1),
     'blender': (2, 80, 0),
     'location': 'Move Clip Editor > Tools Panel > Static Camera Calibration and 3D View > Tools Panel > Photo Modeling Tools',
     'description': 'Reconstruction of 3D geometry and estimation of camera orientation and focal length based on photographs.',
