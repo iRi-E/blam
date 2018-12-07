@@ -1,6 +1,7 @@
 '''
 blam - Blender Camera Calibration Tools
 Copyright (C) 2012-2014  Per Gantelius
+          (C) 2018       IRIE Shinsuke
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -19,14 +20,14 @@ import bpy
 import mathutils
 import math, cmath 
 
-bl_info = { \
-    'name': 'BLAM - The Blender camera calibration toolkit',
-    'author': 'Per Gantelius',
+bl_info = {
+    'name': 'BLAM for Blender 2.8 - The Blender camera calibration toolkit',
+    'author': 'Per Gantelius, IRIE Shinsuke',
     'version': (0, 0, 6),
     'blender': (2, 80, 0),
     'location': 'Move Clip Editor > Tools Panel > Static Camera Calibration and 3D View > Tools Panel > Photo Modeling Tools',
     'description': 'Reconstruction of 3D geometry and estimation of camera orientation and focal length based on photographs.',
-    'tracker_url': 'https://github.com/stuffmatic/blam/issues',
+    'tracker_url': 'https://github.com/iRi-E/blam/issues',
     'wiki_url': 'https://github.com/stuffmatic/blam/wiki',
     'support': 'COMMUNITY',
     'category': '3D View'}
