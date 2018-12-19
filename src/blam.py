@@ -458,7 +458,7 @@ class CreateProjectorCalibrationWindowOperator(bpy.types.Operator):
     bl_description = "TODO"
     
     def execute(self, context):
-        ws = bpy.context.window_manager.windows
+        ws = context.window_manager.windows
         if len(ws) > 1:
             self.report({'ERROR'}, "Other windows exist. Close them and try again.")
             return{'CANCELLED'}
@@ -471,7 +471,7 @@ class SetCalibrationWindowToClipEditor(bpy.types.Operator):
     bl_description = ""
     
     def execute(self, context):
-        windows = bpy.context.window_manager.windows
+        windows = context.window_manager.windows
         if len(windows) > 2:
             self.report({'ERROR'}, "Expected two windows. Found " + str(len(windows)))
             return{'CANCELLED'}
@@ -517,7 +517,7 @@ class SetCalibrationWindowToView3D(bpy.types.Operator):
     bl_description = ""
     
     def execute(self, context):
-        windows = bpy.context.window_manager.windows
+        windows = context.window_manager.windows
         if len(windows) > 2:
             self.report({'ERROR'}, "Expected two windows. Found " + str(len(windows)))
             return{'CANCELLED'}
@@ -573,7 +573,7 @@ class PhotoModelingToolsPanel(bpy.types.Panel):
     bl_region_type = "TOOLS"    
     def draw(self, context):
         l = self.layout
-        props = bpy.context.scene.blam
+        props = context.scene.blam
 
         r = l.row()
         b = r.box()
@@ -597,19 +597,19 @@ class SetLineOfSightScalePivot(bpy.types.Operator):
         bpy.ops.object.mode_set(mode='OBJECT')
         
         selStates = []
-        objs = bpy.context.scene.objects
+        objs = context.scene.objects
         for obj in objs:
             selStates.append(obj.select)
             obj.select = False
         
         #select the camera
-        bpy.context.scene.camera.select = True
+        context.scene.camera.select = True
         
         #snap the cursor to the camer
         bpy.ops.view3d.snap_cursor_to_selected()
         
         #set the cursor to be the pivot
-        space = bpy.context.area.spaces.active
+        space = context.area.spaces.active
         print(space.pivot_point)
         space.pivot_point = 'CURSOR'
         
@@ -628,7 +628,7 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
     projectorName = 'tex_projector'
     materialName = 'cam_map_material'
    
-    def meshVerticesToNDC(self, cam, mesh):
+    def meshVerticesToNDC(self, context, cam, mesh):
 
         #compute a projection matrix transforming
         #points in camera space to points in NDC
@@ -636,7 +636,7 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         far = cam.data.clip_end
         sx = 2 * cam.data.shift_x
         sy = 2 * cam.data.shift_y
-        rs = bpy.context.scene.render
+        rs = context.scene.render
         rx = rs.resolution_x
         ry = rs.resolution_y
         tall = rx < ry
@@ -680,12 +680,11 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         
         return returnVerts
    
-    def addUVsProjectedFromView(self, mesh):
-        cam = bpy.context.scene.camera
+    def addUVsProjectedFromView(self, context, cam, mesh):
         
         #get the mesh vertices in normalized device coordinates
         #as seen through the active camera
-        ndcVerts = self.meshVerticesToNDC(cam, mesh)
+        ndcVerts = self.meshVerticesToNDC(context, cam, mesh)
         
         #create a uv layer
         bpy.ops.object.mode_set(mode='EDIT')
@@ -722,7 +721,7 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
                     uvFace.uv[i][0] = 0.5 * (faceVerts[i][0] + 1.0)
                     uvFace.uv[i][1] = 0.5 * (faceVerts[i][1] + 1.0)
         
-    def performSimpleProjection(self, camera, mesh, img):
+    def performSimpleProjection(self, context, camera, mesh, img):
         if len(mesh.material_slots) == 0:
             mat = bpy.data.materials.new(self.materialName)
             mesh.data.materials.append(mat)
@@ -733,12 +732,12 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         
         
                 
-        self.addUVsProjectedFromView(mesh)
+        self.addUVsProjectedFromView(context, camera, mesh)
         
         for f in mesh.data.uv_textures[0].data:
             f.image = img
     
-    def performHighQualityProjection(self, camera, mesh, img):
+    def performHighQualityProjection(self, context, camera, mesh, img):
         if len(mesh.material_slots) == 0:
             mat = bpy.data.materials.new(self.materialName)
             mesh.data.materials.append(mat)
@@ -752,7 +751,7 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         #the texture sampling is not perspective correct
         #when directly using sticky UVs or UVs projected from the view
         #this is a pretty messy workaround that gives better looking results
-        self.addUVsProjectedFromView(mesh)
+        self.addUVsProjectedFromView(context, camera, mesh)
         
         #then create an empty object that will serve as a texture projector
         #if the mesh has a child with the name of a texture projector, 
@@ -767,9 +766,9 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
             projector = reusedProjector
         else:
             bpy.ops.object.camera_add()
-            projector = bpy.context.active_object
+            projector = context.active_object
         
-        bpy.context.scene.objects.active = projector
+        context.scene.objects.active = projector
         projector.name = mesh.name + '_' + self.projectorName
         projector.matrix_world = camera.matrix_world
         projector.select = False
@@ -782,22 +781,22 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         projector.data.sensor_fit = camera.data.sensor_fit
         
         #parent the projector to the mesh for convenience
-        for obj in bpy.context.scene.objects:
+        for obj in context.scene.objects:
             obj.select = False
         
         projector.select = True
-        bpy.context.scene.objects.active = mesh
+        context.scene.objects.active = mesh
         #bpy.ops.object.parent_set()
         
         #lock the projector to the mesh
-        #bpy.context.scene.objects.active = projector
+        #context.scene.objects.active = projector
         #bpy.ops.object.constraint_add(type='COPY_LOCATION')
         #projector.constraints[-1].target = mesh
         
         #create a simple subdivision modifier on the mesh object. 
         #this subdivision is what alleviates the texture sampling
         #artefacts.
-        bpy.context.scene.objects.active = mesh
+        context.scene.objects.active = mesh
         levels = 3
         bpy.ops.object.modifier_add()
                 
@@ -810,8 +809,8 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         #image onto the subdivided mesh using our projector object.
         bpy.ops.object.modifier_add(type='UV_PROJECT')
         modifier = mesh.modifiers[-1]
-        modifier.aspect_x = bpy.context.scene.render.resolution_x / float(bpy.context.scene.render.resolution_y)
-        modifier.aspect_y = bpy.context.scene.render.resolution_y / float(bpy.context.scene.render.resolution_x)
+        modifier.aspect_x = context.scene.render.resolution_x / float(context.scene.render.resolution_y)
+        modifier.aspect_y = context.scene.render.resolution_y / float(context.scene.render.resolution_x)
         modifier.image = img
         modifier.use_image_override = True
         modifier.projectors[0].object = projector
@@ -830,12 +829,12 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
             bpy.ops.object.modifier_remove(modifier=m.name)
     
     def execute(self, context):
-        props = bpy.context.scene.blam
+        props = context.scene.blam
 
         '''
         Get the active object and make sure it is a mesh
         '''
-        mesh = bpy.context.active_object
+        mesh = context.active_object
 
         if mesh == None:
             self.report({'ERROR'}, "There is no active object")
@@ -847,13 +846,13 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         '''
         Get the current camera
         '''
-        camera = bpy.context.scene.camera
+        camera = context.scene.camera
         if not camera:
             self.report({'ERROR'}, "No active camera.")
             return{'CANCELLED'}    
         
         
-        activeSpace = bpy.context.area.spaces.active
+        activeSpace = context.area.spaces.active
         
         if len(activeSpace.background_images) == 0:
             self.report({'ERROR'}, "No backround images of clips found.")
@@ -880,9 +879,9 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         self.prepareMesh(mesh)
         method = props.projection_method
         if method == 'hq':
-            self.performHighQualityProjection(camera, mesh, img)
+            self.performHighQualityProjection(context, camera, mesh, img)
         elif method == 'simple':
-            self.performSimpleProjection(camera, mesh, img)
+            self.performSimpleProjection(context, camera, mesh, img)
         else:
             self.report({'ERROR'}, "Unknown projection method")
             return{'CANCELLED'}
@@ -1078,7 +1077,7 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         
         return meanError, maxError
                
-    def createMesh(self, inputMesh, computedCoordsByFace, quads, mergeVertices):
+    def createMesh(self, context, inputMesh, computedCoordsByFace, quads, mergeVertices):
         '''
         Mesh creation is done in two steps:
         1. adjust the computed depth values so that the 
@@ -1323,7 +1322,7 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         ob = bpy.data.objects.new(name, me)    
         ob.show_name = True    
         # Link object to scene    
-        bpy.context.scene.objects.link(ob)    
+        context.scene.objects.link(ob)    
         verts = []
         faces = []
         idx = 0
@@ -1368,7 +1367,7 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         me.from_pydata(verts, [], faces)    
         me.update(calc_edges=True)
         ob.select = True
-        bpy.context.scene.objects.active = ob
+        context.scene.objects.active = ob
 
         #finally remove doubles
         bpy.ops.object.mode_set(mode='EDIT')
@@ -1446,14 +1445,14 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         '''
         get the active camera
         '''
-        self.camera = bpy.context.scene.camera
+        self.camera = context.scene.camera
         if self.camera == None:
             self.report({'ERROR'}, "There is no active camera")
                     
         '''
         get the mesh containing the quads, assume it's the active object
         '''
-        self.mesh = bpy.context.active_object
+        self.mesh = context.active_object
 
         if self.mesh == None:
             self.report({'ERROR'}, "There is no active object")
@@ -1513,11 +1512,11 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
             else:
                 assert(False) #no non-quads allowed. should have been caught earlier
               
-        m = self.createMesh(self.mesh, computedCoordsByFace, quads, not props.separate_faces)
+        m = self.createMesh(context, self.mesh, computedCoordsByFace, quads, not props.separate_faces)
         
         #up intil now, coords have been in camera space. transform the final mesh so
         #its transform (and thus origin) conicides with the camera.
-        m.matrix_world = bpy.context.scene.camera.matrix_world
+        m.matrix_world = context.scene.camera.matrix_world
         
         #finally apply a uniform scale that matches the distance between
         #the camera and mean point of the two meshes
@@ -1536,7 +1535,7 @@ class CameraCalibrationPanel(bpy.types.Panel):
     
     def draw(self, context): 
         l = self.layout
-        props = bpy.context.scene.blam
+        props = context.scene.blam
 
         l.prop(props, "calibration_type")
         row = l.row()        
@@ -1716,15 +1715,12 @@ class CameraCalibrationOperator(bpy.types.Operator):
         
         return M
     
-    def gatherGreasePencilSegments(self):
+    def gatherGreasePencilSegments(self, gpl):
         '''Collects and returns line segments in normalized image coordinates
         from the first two grease pencil layers.
         \return A list of line segment sets. [i][j][k][l] is coordinate l of point k 
         in segment j from layer i. 
         '''
-        
-        gp = bpy.context.area.spaces.active.clip.grease_pencil
-        gpl = gp.layers
 
         #loop over grease pencil layers and gather line segments
         vpLineSets = []
@@ -1800,7 +1796,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
         '''Executes the operator.
         \param context The context in which the operator was executed.
         '''
-        props = bpy.context.scene.blam
+        props = context.scene.blam
 
         singleVp = props.calibration_type == 'one_vp'
         useHorizonSegment = props.use_horizon_segment
@@ -1809,7 +1805,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
         '''
         get the active camera
         '''
-        cam = bpy.context.scene.camera
+        cam = context.scene.camera
         if not cam:
             self.report({'ERROR'}, "No active camera.")
             return{'CANCELLED'}
@@ -1839,7 +1835,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
         '''
         gather lines for each vanishing point
         '''        
-        activeSpace = bpy.context.area.spaces.active
+        activeSpace = context.area.spaces.active
         
         if not activeSpace.clip:
             self.report({'ERROR'}, "There is no active movie clip.")
@@ -1860,7 +1856,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
             self.report({'ERROR'}, "Single vanishing point calibration with a custom horizon line requires two grease pencil layers")
             return{'CANCELLED'}
        
-        vpLineSets = self.gatherGreasePencilSegments()
+        vpLineSets = self.gatherGreasePencilSegments(gpl)
         
         #check that we have the expected number of line segment strokes
         if len(vpLineSets[0]) < 2:
@@ -2000,8 +1996,8 @@ class CameraCalibrationOperator(bpy.types.Operator):
         '''
         set the camera background image
         '''
-        bpy.context.scene.render.resolution_x = imageWidth
-        bpy.context.scene.render.resolution_y = imageHeight
+        context.scene.render.resolution_x = imageWidth
+        context.scene.render.resolution_y = imageHeight
         
         if setBgImg:
             bpy.ops.clip.set_viewport_background()
