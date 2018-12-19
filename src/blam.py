@@ -492,7 +492,6 @@ def quadratic(a, b, c=None):
 
 
 def solveCubic(a, b, c, d):
-    cIn = [a, b, c, d]
     a, b, c = b / float(a), c / float(a), d / float(a)
     t = a / 3.0
     p, q = b - 3 * t**2, c - b * t + 2 * t**3
@@ -827,12 +826,7 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         bpy.ops.object.mode_set(mode='OBJECT')
 
         # set uvs to match the vertex x and y components in NDC
-        isBmesh = True
-        try:
-            f = mesh.data.faces
-            isBmesh = False
-        except AttributeError:
-            pass
+        isBmesh = not hasattr(mesh.data, "faces")
 
         if isBmesh:
             loops = mesh.data.loops
@@ -1078,12 +1072,12 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         Qac = dot(qHatA, qHatC)
         Qad = dot(qHatA, qHatD)
 
-        Qba = dot(qHatB, qHatA)
+        # Qba = dot(qHatB, qHatA)
         Qbc = dot(qHatB, qHatC)
         Qbd = dot(qHatB, qHatD)
 
-        Qca = dot(qHatC, qHatA)
-        Qcb = dot(qHatC, qHatB)
+        # Qca = dot(qHatC, qHatA)
+        # Qcb = dot(qHatC, qHatB)
         Qcd = dot(qHatC, qHatD)
 
         # print("Qab", Qab, "Qac", Qac, "Qad", Qad)
@@ -1280,8 +1274,8 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         # the number of shared edges. the number of columns is m-1
         # where m is the number of faces (the depth factor for the first
         # face is set to 1)
-        k1 = 1
-        firstFace = getMeshFaces(inputMesh)[0]
+        # k1 = 1
+        # firstFace = getMeshFaces(inputMesh)[0]
         numFaces = len(getMeshFaces(inputMesh))
         faces = [f for f in getMeshFaces(inputMesh)]
         matrixRows = []
@@ -1744,7 +1738,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
 
         FvPuv = length([x - y for x, y in zip(Fv, Puv)])
         FuPuv = length([x - y for x, y in zip(Fu, Puv)])
-        FuFv = length([x - y for x, y in zip(Fu, Fv)])
+        # FuFv = length([x - y for x, y in zip(Fu, Fv)])
         # print("FuFv", FuFv, "FvPuv + FuPuv", FvPuv + FuPuv)
 
         fSq = FvPuv * FuPuv - PPuv * PPuv
