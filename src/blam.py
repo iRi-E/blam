@@ -493,7 +493,6 @@ def quadratic(a, b, c=None):
 
 
 def solveCubic(a, b, c, d):
-    cIn = [a, b, c, d]
     a, b, c = b / float(a), c / float(a), d / float(a)
     t = a / 3.0
     p, q = b - 3 * t**2, c - b * t + 2 * t**3
@@ -842,7 +841,7 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
             node.location = mathutils.Vector(location)
 
         for to_node, to_socket, from_node, from_socket in [(0, 0, 1, 0), (1, 0, 2, 0)]:
-            link = tree.links.new(nodes[to_node].inputs[to_socket], nodes[from_node].outputs[from_socket])
+            tree.links.new(nodes[to_node].inputs[to_socket], nodes[from_node].outputs[from_socket])
 
         nodes[2].image = image
 
@@ -1066,12 +1065,12 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         Qac = dot(qHatA, qHatC)
         Qad = dot(qHatA, qHatD)
 
-        Qba = dot(qHatB, qHatA)
+        # Qba = dot(qHatB, qHatA)
         Qbc = dot(qHatB, qHatC)
         Qbd = dot(qHatB, qHatD)
 
-        Qca = dot(qHatC, qHatA)
-        Qcb = dot(qHatC, qHatB)
+        # Qca = dot(qHatC, qHatA)
+        # Qcb = dot(qHatC, qHatB)
         Qcd = dot(qHatC, qHatD)
 
         # print("Qab", Qab, "Qac", Qac, "Qad", Qad)
@@ -1268,8 +1267,8 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         # the number of shared edges. the number of columns is m-1
         # where m is the number of faces (the depth factor for the first
         # face is set to 1)
-        k1 = 1
-        firstFace = inputMesh.data.polygons[0]
+        # k1 = 1
+        # firstFace = inputMesh.data.polygons[0]
         numFaces = len(inputMesh.data.polygons)
         faces = [f for f in inputMesh.data.polygons]
         matrixRows = []
@@ -1732,7 +1731,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
 
         FvPuv = length([x - y for x, y in zip(Fv, Puv)])
         FuPuv = length([x - y for x, y in zip(Fu, Puv)])
-        FuFv = length([x - y for x, y in zip(Fu, Fv)])
+        # FuFv = length([x - y for x, y in zip(Fu, Fv)])
         # print("FuFv", FuFv, "FvPuv + FuPuv", FvPuv + FuPuv)
 
         fSq = FvPuv * FuPuv - PPuv * PPuv
