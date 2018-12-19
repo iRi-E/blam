@@ -1697,11 +1697,11 @@ class CameraCalibrationOperator(bpy.types.Operator):
         based on the first, a focal length, the center of projection and
         the desired horizon tilt angle. The equations here are derived from
         section 3.2 "Determining the focal length from a single image".
-        param Fu the first vanishing point in normalized image coordinates.
-        param f the relative focal length.
-        param P the center of projection in normalized image coordinates.
-        param horizonDir The desired horizon direction.
-        return The coordinates of the second vanishing point.
+        :param Fu: the first vanishing point in normalized image coordinates.
+        :param f: the relative focal length.
+        :param P: the center of projection in normalized image coordinates.
+        :param horizonDir: The desired horizon direction.
+        :return: The coordinates of the second vanishing point.
         '''
 
         # find the second vanishing point
@@ -1716,10 +1716,10 @@ class CameraCalibrationOperator(bpy.types.Operator):
     def computeFocalLength(self, Fu, Fv, P):
         '''Computes the focal length based on two vanishing points and a center of projection.
         See 3.2 "Determining the focal length from a single image"
-        \param Fu the first vanishing point in normalized image coordinates.
-        \param Fv the second vanishing point in normalized image coordinates.
-        \param P the center of projection in normalized image coordinates.
-        \return The relative focal length.
+        :param Fu: the first vanishing point in normalized image coordinates.
+        :param Fv: the second vanishing point in normalized image coordinates.
+        :param P: the center of projection in normalized image coordinates.
+        :return: The relative focal length.
         '''
 
         # compute Puv, the orthogonal projection of P onto FuFv
@@ -1748,10 +1748,10 @@ class CameraCalibrationOperator(bpy.types.Operator):
     def computeCameraRotationMatrix(self, Fu, Fv, f, P):
         '''Computes the camera rotation matrix based on two vanishing points
         and a focal length as in section 3.3 "Computing the rotation matrix".
-        \param Fu the first vanishing point in normalized image coordinates.
-        \param Fv the second vanishing point in normalized image coordinates.
-        \param f the relative focal length.
-        \return The matrix Moc
+        :param Fu: the first vanishing point in normalized image coordinates.
+        :param Fv: the second vanishing point in normalized image coordinates.
+        :param f: the relative focal length.
+        :return: The matrix Moc
         '''
         Fu[0] -= P[0]
         Fu[1] -= P[1]
@@ -1794,10 +1794,10 @@ class CameraCalibrationOperator(bpy.types.Operator):
         '''
         Modifies the original camera transform to make the coordinate axes line
         up as specified.
-        \param M the original camera rotation matrix
-        \ax1 The index of the axis to align with the first layer segments.
-        \ax2 The index of the axis to align with the second layer segments.
-        \return The final camera rotation matrix.
+        :param M: the original camera rotation matrix
+        :param ax1: The index of the axis to align with the first layer segments.
+        :param ax2: The index of the axis to align with the second layer segments.
+        :return: The final camera rotation matrix.
         '''
         # line up the axes as specified in the ui
         x180Rot = mathutils.Euler((math.radians(180.0), 0, 0), 'XYZ').to_matrix().to_4x4()
@@ -1833,7 +1833,8 @@ class CameraCalibrationOperator(bpy.types.Operator):
     def gatherGreasePencilSegments(self, gpl):
         '''Collects and returns line segments in normalized image coordinates
         from the first two grease pencil layers.
-        \return A list of line segment sets. [i][j][k][l] is coordinate l of point k
+        :param gpl: A collection of grease pencil layers
+        :return: A list of line segment sets. [i][j][k][l] is coordinate l of point k
         in segment j from layer i.
         '''
 
@@ -1908,7 +1909,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
 
     def execute(self, context):
         '''Executes the operator.
-        \param context The context in which the operator was executed.
+        :param context: The context in which the operator was executed.
         '''
         props = context.scene.blam
 
