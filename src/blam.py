@@ -26,8 +26,8 @@ bl_info = {
     'author': 'Per Gantelius, IRIE Shinsuke',
     'version': (0, 6, 1),
     'blender': (2, 80, 0),
-    'location': 'Move Clip Editor > Tools Panel > Static Camera Calibration and 3D View > Tools Panel > Photo Modeling Tools',
-    'description': 'Reconstruction of 3D geometry and estimation of camera orientation and focal length based on photographs.',
+    'location': 'Move Clip Editor > Tool Shelf > Static Camera Calibration and 3D View > Tools > Photo Modeling Tools',
+    'description': 'Reconstruct 3D geometry and estimate camera orientation and focal length based on photographs',
     'tracker_url': 'https://github.com/iRi-E/blam/issues',
     'wiki_url': 'https://github.com/stuffmatic/blam/wiki',
     'support': 'COMMUNITY',
@@ -115,16 +115,16 @@ class Table(list):
         return self.map(operator.add, rhs)
 
     def __rmul__(self, lhs):
-        return self*lhs
+        return self * lhs
 
     # def __rdiv__(self, lhs):
     #     return self*(1.0/lhs)
 
     def __rsub__(self, lhs):
-        return -(self-lhs)
+        return -(self - lhs)
 
     def __radd__(self, lhs):
-        return self+lhs
+        return self + lhs
 
     def __abs__(self):
         return self.map(abs)
@@ -179,13 +179,13 @@ class Vec(Table):
         return self * (1.0 / self.norm())
 
     def outer(self, otherVec):
-        return Mat([otherVec*x for x in self])
+        return Mat([otherVec * x for x in self])
 
     def cross(self, otherVec):
         'Compute a Vector or Cross Product with another vector'
         assert len(self) == len(otherVec) == 3, 'Cross product only defined for 3-D vectors'
         u, v = self, otherVec
-        return Vec([u[1]*v[2]-u[2]*v[1], u[2]*v[0]-u[0]*v[2], u[0]*v[1]-u[1]*v[0]])
+        return Vec([u[1]*v[2] - u[2]*v[1], u[2]*v[0] - u[0]*v[2], u[0]*v[1] - u[1]*v[0]])
 
     def house(self, index):
         'Compute a Householder vector which zeroes all but the index element after a reflection'
@@ -193,13 +193,13 @@ class Vec(Table):
         t = v[index]
         sigma = 1.0 - t**2
         if sigma != 0.0:
-            t = v[index] = t <= 0 and t-1.0 or -sigma / (t + 1.0)
+            t = v[index] = t <= 0 and t - 1.0 or -sigma / (t + 1.0)
             v = v * (1.0 / t)
         return v, 2.0 * t**2 / (sigma + t**2)
 
     def polyval(self, x):
         'Vec([6, 3, 4]).polyval(5) evaluates to 6*x**2 + 3*x + 4 at x=5'
-        return reduce(lambda cum, c: cum*x+c, self, 0.0)
+        return reduce(lambda cum, c: cum*x + c, self, 0.0)
 
     def ratval(self, x):
         'Vec([10, 20, 30, 40, 50]).ratfit(5) evaluates to (10*x**2 + 20*x + 30) / (40*x**2 + 50*x + 1) at x=5.'
@@ -250,7 +250,7 @@ class Matrix(Table):
         m, n = R.size
         for i in range(min(m, n)):
             v, beta = R.tr()[i].house(i)
-            R -= v.outer(R.tr().mmul(v)*beta)
+            R -= v.outer(R.tr().mmul(v) * beta)
         for i in range(1, min(n, m)):
             R[i][:i] = [0] * i
         R = Mat(R[:n])
@@ -258,7 +258,9 @@ class Matrix(Table):
             return R
         Q = R.tr().solve(self.tr()).tr()       # Rt Qt = At    nn  nm  = nm
         self.qr = lambda r=0, c=self: not r and c == self and (Q, R) or Matrix.qr(self, r)  # Cache result
-        assert NPOST or m >= n and Q.size == (m, n) and isinstance(R, UpperTri) or m < n and Q.size == (m, m) and R.size == (m, n)
+        assert (NPOST or
+                m >= n and Q.size == (m, n) and isinstance(R, UpperTri) or
+                m < n and Q.size == (m, m) and R.size == (m, n))
         assert NPOST or Q.mmul(R) == self and Q.tr().mmul(Q) == eye(min(m, n))
         return Q, R
 
@@ -324,9 +326,9 @@ class Square(Matrix):
         '''Householder reduction to Hessenberg Form (zeroes below the diagonal)
         while keeping the same eigenvalues as self.'''
         for i in range(self.cols-2):
-            v, beta = self.tr()[i].house(i+1)
-            self -= v.outer(self.tr().mmul(v)*beta)
-            self -= self.mmul(v).outer(v*beta)
+            v, beta = self.tr()[i].house(i + 1)
+            self -= v.outer(self.tr().mmul(v) * beta)
+            self -= self.mmul(v).outer(v * beta)
         return self
 
     def eigs(self):
@@ -359,7 +361,7 @@ class UpperTri(Triangular):
     def _solve(self, b):
         'Solve an upper triangular matrix using backward substitution'
         x = Vec([])
-        for i in range(self.rows-1, -1, -1):
+        for i in range(self.rows - 1, -1, -1):
             assert NPRE or self[i][i], 'Backsub requires non-zero elements on the diagonal'
             x.insert(0, (b[i] - x.dot(self[i][i+1:])) / self[i][i])
         return x
@@ -388,7 +390,7 @@ def Mat(elems):
             break
     else:
         return UpperTri(elems)
-    for i in range(0, len(elems)-1):
+    for i in range(0, len(elems) - 1):
         if not iszero(max(map(abs, elems[i][i+1:]))):
             return Square(elems)
     return LowerTri(elems)
@@ -398,11 +400,11 @@ def funToVec(tgtfun, low=-1, high=1, steps=40, EqualSpacing=0):
     '''Compute x, y points from evaluating a target function over an interval (low to high)
     at evenly spaces points or with Chebyshev abscissa spacing (default) '''
     if EqualSpacing:
-        h = (0.0+high-low)/steps
-        xvec = [low+h/2.0+h*i for i in range(steps)]
+        h = (0.0+high-low) / steps
+        xvec = [low + h/2.0 + h*i for i in range(steps)]
     else:
-        scale, base = (0.0+high-low)/2.0, (0.0+high+low)/2.0
-        xvec = [base+scale*math.cos(((2*steps-1-2*i)*math.pi)/(2*steps)) for i in range(steps)]
+        scale, base = (0.0+high-low) / 2.0, (0.0+high+low) / 2.0
+        xvec = [base + scale * math.cos(((2*steps-1-2*i)*math.pi)/(2*steps)) for i in range(steps)]
     yvec = map(tgtfun, xvec)
     return Mat([xvec, yvec])
 
@@ -419,7 +421,8 @@ def polyfit(xvec, yvec, degree=2):
 
 def ratfit(xvec, yvec, degree=2):
     'Solves design matrix for approximating rational polynomial coefficients (a*x**2 + b*x + c)/(d*x**2 + e*x + 1)'
-    return Mat([[x**n for n in range(degree, -1, -1)]+[-y*x**n for n in range(degree, 0, -1)] for x, y in zip(xvec, yvec)]).solve(Vec(yvec))
+    return Mat([[x**n for n in range(degree, -1, -1)] + [-y * x**n for n in range(degree, 0, -1)]
+                for x, y in zip(xvec, yvec)]).solve(Vec(yvec))
 
 
 def genmat(m, n, func):
@@ -440,7 +443,7 @@ def eye(m=1, n=None):
 
 def hilb(m=1, n=None):
     'Hilbert matrix with side length m-by-m or m-by-n.  Elem[i][j]=1/(i+j+1)'
-    return genmat(m, n, lambda i, j: 1.0/(i+j+1.0))
+    return genmat(m, n, lambda i, j: 1.0 / (i+j+1.0))
 
 
 def rand(m=1, n=None):
@@ -710,8 +713,8 @@ class PhotoModelingToolsPanel(bpy.types.Panel):
 class SetLineOfSightScalePivot(bpy.types.Operator):
     bl_idname = "object.set_los_scale_pivot"
     bl_label = "Set line of sight scale pivot"
-
-    bl_description = "Set the pivot to the camera origin, which makes scaling equivalent to translation along the line of sight."
+    bl_description = "Set the pivot to the camera origin, " \
+                     "which makes scaling equivalent to translation along the line of sight."
 
     def execute(self, context):
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -743,7 +746,8 @@ class SetLineOfSightScalePivot(bpy.types.Operator):
 class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
     bl_idname = "object.project_bg_onto_mesh"
     bl_label = "Project background image onto mesh"
-    bl_description = "Projects the current 3D view background image onto a mesh (the active object) from the active camera."
+    bl_description = "Projects the current 3D view background image onto a mesh (the active object) " \
+                     "from the active camera."
     bl_options = {'REGISTER', 'UNDO'}
 
     projectorName = 'tex_projector'
@@ -1008,7 +1012,9 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
 class Reconstruct3DMeshOperator(bpy.types.Operator):
     bl_idname = "object.compute_depth_information"
     bl_label = "Reconstruct 3D geometry"
-    bl_description = "Reconstructs a 3D mesh with rectangular faces based on a mesh with faces lining up with the corresponding faces in the image. Relies on the active camera being properly calibrated."
+    bl_description = "Reconstructs a 3D mesh with rectangular faces " \
+                     "based on a mesh with faces lining up with the corresponding faces in the image. " \
+                     "Relies on the active camera being properly calibrated."
     bl_options = {'REGISTER', 'UNDO'}
 
     def evalEq17(self, origin, p1, p2):
@@ -1017,13 +1023,13 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         return dot(a, b)
 
     def evalEq27(self, l):
-        return self.C4 * l ** 4 + self.C3 * l ** 3 + self.C2 * l ** 2 + self.C1 * l + self.C0
+        return self.C4 * l**4 + self.C3 * l**3 + self.C2 * l**2 + self.C1 * l + self.C0
 
     def evalEq28(self, l):
-        return self.B4 * l ** 4 + self.B3 * l ** 3 + self.B2 * l ** 2 + self.B1 * l + self.B0
+        return self.B4 * l**4 + self.B3 * l**3 + self.B2 * l**2 + self.B1 * l + self.B0
 
     def evalEq29(self, l):
-        return self.D3 * l ** 3 + self.D2 * l ** 2 + self.D1 * l + self.D0
+        return self.D3 * l**3 + self.D2 * l**2 + self.D1 * l + self.D0
 
     def worldToCameraSpace(self, verts):
 
@@ -1040,18 +1046,22 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         return ret
 
     def computeCi(self, Qab, Qac, Qad, Qbc, Qbd, Qcd):
-        self.C4 = Qad * Qbc * Qbd - Qac * Qbd ** 2
-        self.C3 = Qab * Qad * Qbd * Qcd - Qad ** 2 * Qcd + Qac * Qad * Qbd ** 2 - Qad ** 2 * Qbc * Qbd - Qbc * Qbd + 2 * Qab * Qac * Qbd - Qab * Qad * Qbc
-        self.C2 = -Qab * Qbd * Qcd - Qab ** 2 * Qad * Qcd + 2 * Qad * Qcd + Qad * Qbc * Qbd - 3 * Qab * Qac * Qad * Qbd + Qab * Qad ** 2 * Qbc + Qab * Qbc + Qac * Qad ** 2 - Qab ** 2 * Qac
-        self.C1 = Qab ** 2 * Qcd - Qcd + Qab * Qac * Qbd - Qab * Qad * Qbc + 2 * Qab ** 2 * Qac * Qad - 2 * Qac * Qad
-        self.C0 = Qac - Qab ** 2 * Qac
+        self.C4 = Qad*Qbc*Qbd - Qac*Qbd*Qbd
+        self.C3 = (Qab*Qad*Qbd*Qcd - Qad*Qad*Qcd + Qac*Qad*Qbd*Qbd - Qad*Qad*Qbc*Qbd - Qbc*Qbd +
+                   2*Qab*Qac*Qbd - Qab*Qad*Qbc)
+        self.C2 = (-Qab*Qbd*Qcd - Qab*Qab*Qad*Qcd + 2*Qad*Qcd + Qad*Qbc*Qbd - 3*Qab*Qac*Qad*Qbd +
+                   Qab*Qad*Qad*Qbc + Qab*Qbc + Qac*Qad*Qad - Qab*Qab*Qac)
+        self.C1 = Qab*Qab*Qcd - Qcd + Qab*Qac*Qbd - Qab*Qad*Qbc + 2*Qab*Qab*Qac*Qad - 2*Qac*Qad
+        self.C0 = Qac - Qab*Qab*Qac
 
     def computeBi(self, Qab, Qac, Qad, Qbc, Qbd, Qcd):
-        self.B4 = Qbd - Qbd * Qcd ** 2
-        self.B3 = 2 * Qad * Qbd * Qcd ** 2 + Qab * Qcd ** 2 + Qac * Qbd * Qcd - Qad * Qbc * Qcd - 2 * Qad * Qbd - Qab
-        self.B2 = - Qbd * Qcd ** 2 - Qab * Qad * Qcd ** 2 - 3 * Qac * Qad * Qbd * Qcd + Qad ** 2 * Qbc * Qcd + Qbc * Qcd - Qab * Qac * Qcd + Qad ** 2 * Qbd + Qac * Qad * Qbc + 2 * Qab * Qad
-        self.B1 = 2 * Qac * Qbd * Qcd - Qad * Qbc * Qcd + Qab * Qac * Qad * Qcd + Qac ** 2 * Qad * Qbd - Qac * Qad ** 2 * Qbc - Qac * Qbc - Qab * Qad ** 2
-        self.B0 = Qac * Qad * Qbc - Qac ** 2 * Qbd
+        self.B4 = Qbd - Qbd*Qcd*Qcd
+        self.B3 = 2*Qad*Qbd*Qcd*Qcd + Qab*Qcd*Qcd + Qac*Qbd*Qcd - Qad*Qbc*Qcd - 2*Qad*Qbd - Qab
+        self.B2 = (-Qbd*Qcd*Qcd - Qab*Qad*Qcd*Qcd - 3*Qac*Qad*Qbd*Qcd + Qad*Qad*Qbc*Qcd +
+                   Qbc*Qcd - Qab*Qac*Qcd + Qad*Qad*Qbd + Qac*Qad*Qbc + 2*Qab*Qad)
+        self.B1 = (2*Qac*Qbd*Qcd - Qad*Qbc*Qcd + Qab*Qac*Qad*Qcd +
+                   Qac*Qac*Qad*Qbd - Qac*Qad*Qad*Qbc - Qac*Qbc - Qab*Qad*Qad)
+        self.B0 = Qac*Qad*Qbc - Qac*Qac*Qbd
 
     def computeQuadDepthInformation(self, qHatA, qHatB, qHatC, qHatD):
 
@@ -1366,15 +1376,15 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
             l0 = vertsToMergeByOriginalIdx[e.vertices[0]]
             l1 = vertsToMergeByOriginalIdx[e.vertices[1]]
 
-            if idx00 + 4 * f0Idx not in l0:
-                l0.append(idx00 + 4 * f0Idx)
-            if idx10 + 4 * f1Idx not in l0:
-                l0.append(idx10 + 4 * f1Idx)
+            if idx00 + 4*f0Idx not in l0:
+                l0.append(idx00 + 4*f0Idx)
+            if idx10 + 4*f1Idx not in l0:
+                l0.append(idx10 + 4*f1Idx)
 
-            if idx01 + 4 * f0Idx not in l1:
-                l1.append(idx01 + 4 * f0Idx)
-            if idx11 + 4 * f1Idx not in l1:
-                l1.append(idx11 + 4 * f1Idx)
+            if idx01 + 4*f0Idx not in l1:
+                l1.append(idx01 + 4*f0Idx)
+            if idx11 + 4*f1Idx not in l1:
+                l1.append(idx11 + 4*f1Idx)
 
         assert(len(matrixRows) == len(rhRows))
         assert(len(matrixRows) == 2 * len(quadFacePairsBySharedEdge))
@@ -1685,10 +1695,10 @@ class CameraCalibrationOperator(bpy.types.Operator):
     from a Single Image" by E. Guillou, D. Meneveaux, E. Maisel, K. Bouatouch.
     (http://www.irisa.fr/prive/kadi/Reconstruction/paper.ps.gz).
     '''
-
     bl_idname = "object.estimate_focal_length"
     bl_label = "Calibrate active camera"
-    bl_description = "Computes the focal length and orientation of the active camera based on the provided grease pencil strokes."
+    bl_description = "Computes the focal length and orientation of the active camera based on " \
+                     "the provided grease pencil strokes."
     bl_options = {'REGISTER', 'UNDO'}
 
     def computeSecondVanishingPoint(self, Fu, f, P, horizonDir):
@@ -1707,7 +1717,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
         # TODO 1: take principal point into account here
         # TODO 2: if the first vanishing point coincides with the image center,
         #        these lines won't work, but this case should be handled somehow.
-        k = -(Fu[0] ** 2 + Fu[1] ** 2 + f ** 2) / (Fu[0] * horizonDir[0] + Fu[1] * horizonDir[1])
+        k = -(Fu[0]**2 + Fu[1]**2 + f**2) / (Fu[0] * horizonDir[0] + Fu[1] * horizonDir[1])
         Fv = [Fu[i] + k * horizonDir[i] for i in range(2)]
 
         return Fv
@@ -1769,7 +1779,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
         s2 = length(OFv)
         vpRc = normalize(OFv)
 
-        wpRc = [upRc[1] * vpRc[2] - upRc[2] * vpRc[1], upRc[2] * vpRc[0] - upRc[0] * vpRc[2], upRc[0] * vpRc[1] - upRc[1] * vpRc[0]]
+        wpRc = [upRc[1]*vpRc[2] - upRc[2]*vpRc[1], upRc[2]*vpRc[0] - upRc[0]*vpRc[2], upRc[0]*vpRc[1] - upRc[1]*vpRc[0]]
 
         M = mathutils.Matrix()
         M[0][0] = Fu[0] / s1
@@ -1870,7 +1880,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
             # a unit vector perpendicular to the line
             n = [dir[1], -dir[0]]
             matrixRows.append([n[0], n[1]])
-            rhsRows.append([p[0] * n[0] + p[1] * n[1]])
+            rhsRows.append([p[0]*n[0] + p[1]*n[1]])
 
         m = Mat(matrixRows)
         b = Mat(rhsRows)
@@ -1894,9 +1904,9 @@ class CameraCalibrationOperator(bpy.types.Operator):
         e = C[0]
         f = C[1]
 
-        N = b * c + d * e + f * a - c * f - b * e - a * d
-        x = ((d-f) * b * b + (f-b) * d * d + (b-d) * f * f + a * b * (c-e) + c * d * (e-a) + e * f * (a-c)) / N
-        y = ((e-c) * a * a + (a-e) * c * c + (c-a) * e * e + a * b * (f-d) + c * d * (b-f) + e * f * (d-b)) / N
+        N = b*c + d*e + f*a - c*f - b*e - a*d
+        x = ((d-f)*b*b + (f-b)*d*d + (b-d)*f*f + a*b*(c-e) + c*d*(e-a) + e*f*(a-c)) / N
+        y = ((e-c)*a*a + (a-e)*c*c + (c-a)*e*e + a*b*(f-d) + c*d*(b-f) + e*f*(d-b)) / N
 
         return (x, y)
 
@@ -1967,7 +1977,9 @@ class CameraCalibrationOperator(bpy.types.Operator):
             self.report({'ERROR'}, "Calibration using two vanishing points requires two grease pencil layers.")
             return{'CANCELLED'}
         if len(gpl) < 2 and singleVp and useHorizonSegment:
-            self.report({'ERROR'}, "Single vanishing point calibration with a custom horizon line requires two grease pencil layers")
+            self.report(
+                {'ERROR'},
+                "Single vanishing point calibration with a custom horizon line requires two grease pencil layers")
             return{'CANCELLED'}
 
         vpLineSets = self.gatherGreasePencilSegments(gpl)
@@ -1980,7 +1992,9 @@ class CameraCalibrationOperator(bpy.types.Operator):
             self.report({'ERROR'}, "The second grease pencil layer must contain at least two line segment strokes.")
             return{'CANCELLED'}
         if singleVp and useHorizonSegment and len(vpLineSets[1]) != 1:
-            self.report({'ERROR'}, "The second grease pencil layer must contain exactly one line segment stroke (the horizon line).")
+            self.report(
+                {'ERROR'},
+                "The second grease pencil layer must contain exactly one line segment stroke (the horizon line).")
             return{'CANCELLED'}
 
         '''
