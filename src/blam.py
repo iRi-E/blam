@@ -2172,9 +2172,9 @@ class BLAMProps(bpy.types.PropertyGroup):
 classes = (
     BLAMProps,
     # ProjectorCalibrationPanel,
-    CreateProjectorCalibrationWindowOperator,
-    SetCalibrationWindowToClipEditor,
-    SetCalibrationWindowToView3D,
+    # CreateProjectorCalibrationWindowOperator,
+    # SetCalibrationWindowToClipEditor,
+    # SetCalibrationWindowToView3D,
     PhotoModelingToolsPanel,
     SetLineOfSightScalePivot,
     ProjectBackgroundImageOntoMeshOperator,
