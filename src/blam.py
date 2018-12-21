@@ -1917,10 +1917,14 @@ class CameraCalibrationOperator(bpy.types.Operator):
 
         return (x, y)
 
-    def relImgCoords2ImgPlaneCoords(self, pt, imageWidth, imageHeight):
-        ratio = imageWidth / float(imageHeight)
-        sw = ratio
-        sh = 1
+    def imgAspect(self, imageWidth, imageHeight, sensor_fit):
+        if sensor_fit == 'AUTO' and imageWidth >= imageHeight or sensor_fit == 'HORIZONTAL':
+            return (1, imageHeight / imageWidth)
+        else:
+            return (imageWidth / imageHeight, 1)
+
+    def relImgCoords2ImgPlaneCoords(self, pt, imageWidth, imageHeight, sensor_fit):
+        sw, sh = self.imgAspect(imageWidth, imageHeight, sensor_fit)
         return [sw * (pt[0] - 0.5), sh * (pt[1] - 0.5)]
 
     def execute(self, context):
@@ -2011,6 +2015,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
         '''
         imageWidth = activeSpace.clip.size[0]
         imageHeight = activeSpace.clip.size[1]
+        sf = cam.data.sensor_fit
 
         # principal point in image plane coordinates.
         # in the middle of the image by default
@@ -2020,13 +2025,12 @@ class CameraCalibrationOperator(bpy.types.Operator):
             '''
             calibration using a single vanishing point
             '''
-            imgAspect = imageWidth / float(imageHeight)
-
             # compute the horizon direction
             horizDir = normalize([1.0, 0.0])  # flat horizon by default
             if useHorizonSegment:
-                xHorizDir = imgAspect * (vpLineSets[1][0][1][0] - vpLineSets[1][0][0][0])
-                yHorizDir = vpLineSets[1][0][1][1] - vpLineSets[1][0][0][1]
+                ax, ay = self.imgAspect(imageWidth, imageHeight, sf)
+                xHorizDir = ax * (vpLineSets[1][0][1][0] - vpLineSets[1][0][0][0])
+                yHorizDir = ay * (vpLineSets[1][0][1][1] - vpLineSets[1][0][0][1])
                 horizDir = normalize([-xHorizDir, -yHorizDir])
             # print("horizDir", horizDir)
 
@@ -2037,9 +2041,9 @@ class CameraCalibrationOperator(bpy.types.Operator):
             fAbs = activeSpace.clip.tracking.camera.focal_length
             sensorWidth = activeSpace.clip.tracking.camera.sensor_width
 
-            f = fAbs / sensorWidth * imgAspect
+            f = fAbs / sensorWidth
             # print("fAbs", fAbs, "f rel", f)
-            Fu = self.relImgCoords2ImgPlaneCoords(vp1, imageWidth, imageHeight)
+            Fu = self.relImgCoords2ImgPlaneCoords(vp1, imageWidth, imageHeight, sf)
             Fv = self.computeSecondVanishingPoint(Fu, f, P, horizDir)
         else:
             '''
@@ -2052,7 +2056,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
                 P[0] /= imageWidth
                 P[1] /= imageHeight
                 # print("normlz. optical center", P[:])
-                P = self.relImgCoords2ImgPlaneCoords(P, imageWidth, imageHeight)
+                P = self.relImgCoords2ImgPlaneCoords(P, imageWidth, imageHeight, sf)
             elif props.optical_center_type == 'compute':
                 if len(vpLineSets) < 3:
                     self.report({'ERROR'}, "A third grease pencil layer is needed to compute the optical center.")
@@ -2060,7 +2064,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
                 # compute the principal point using a vanishing point from a third gp layer.
                 # this computation does not rely on the order of the line sets
                 vps = [self.computeIntersectionPointForLineSegments(vpLineSets[i]) for i in range(len(vpLineSets))]
-                vps = [self.relImgCoords2ImgPlaneCoords(vps[i], imageWidth, imageHeight) for i in range(len(vps))]
+                vps = [self.relImgCoords2ImgPlaneCoords(vps[i], imageWidth, imageHeight, sf) for i in range(len(vps))]
                 P = self.computeTriangleOrthocenter(vps)
             else:
                 # assume optical center in image midpoint
@@ -2078,8 +2082,8 @@ class CameraCalibrationOperator(bpy.types.Operator):
             '''
             compute focal length
             '''
-            Fu = self.relImgCoords2ImgPlaneCoords(vps[0], imageWidth, imageHeight)
-            Fv = self.relImgCoords2ImgPlaneCoords(vps[1], imageWidth, imageHeight)
+            Fu = self.relImgCoords2ImgPlaneCoords(vps[0], imageWidth, imageHeight, sf)
+            Fv = self.relImgCoords2ImgPlaneCoords(vps[1], imageWidth, imageHeight, sf)
 
             f = self.computeFocalLength(Fu, Fv, P)
 
@@ -2114,9 +2118,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
 
         # compute an absolute focal length in mm based
         # on the current camera settings
-        # TODO: make sure this works for all combinations of
-        # image dimensions and camera sensor settings
-        if imageWidth >= imageHeight:
+        if cam.data.sensor_fit == 'VERTICAL':
             fMm = cam.data.sensor_height * f
         else:
             fMm = cam.data.sensor_width * f
@@ -2124,9 +2126,8 @@ class CameraCalibrationOperator(bpy.types.Operator):
         self.report({'INFO'}, "Camera focal length set to " + str(fMm))
 
         # move principal point of the blender camera
-        r = max(imageWidth / float(imageHeight), 1)
-        cam.data.shift_x = -1 * P[0] / r
-        cam.data.shift_y = -1 * P[1] / r
+        cam.data.shift_x = -1 * P[0]
+        cam.data.shift_y = -1 * P[1]
 
         '''
         set the camera background image
