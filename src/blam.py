@@ -1341,7 +1341,7 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
                 vert0MatrixRow[f1Idx - 1] = lambda10
             elif f1Idx == 0:
                 vert0RhRow[0] = lambda10
-                vert0MatrixRow[f10Idx - 1] = lambda00
+                vert0MatrixRow[f0Idx - 1] = lambda00
             else:
                 vert0MatrixRow[f0Idx - 1] = lambda00
                 vert0MatrixRow[f1Idx - 1] = -lambda10
@@ -1355,7 +1355,7 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
                 vert1MatrixRow[f1Idx - 1] = lambda11
             elif f1Idx == 0:
                 vert1RhRow[0] = lambda11
-                vert1MatrixRow[f10dx - 1] = lambda01
+                vert1MatrixRow[f0Idx - 1] = lambda01
             else:
                 vert1MatrixRow[f0Idx - 1] = lambda01
                 vert1MatrixRow[f1Idx - 1] = -lambda11
