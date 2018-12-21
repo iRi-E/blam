@@ -773,15 +773,15 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         rs = context.scene.render
         rx = rs.resolution_x
         ry = rs.resolution_y
-        tall = rx < ry
-        if tall:
-            fov = cam.data.angle_x
+        sf = cam.data.sensor_fit
+        if sf == 'AUTO' and rx < ry or sf == 'VERTICAL':
+            fov = cam.data.angle
             aspect = rx / float(ry)
             h = math.tan(0.5 * fov)
             w = aspect * h
             sx /= aspect
         else:
-            fov = cam.data.angle_x
+            fov = cam.data.angle
             aspect = ry / float(rx)
             w = math.tan(0.5 * fov)
             h = aspect * w
