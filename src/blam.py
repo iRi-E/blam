@@ -181,13 +181,13 @@ class Vec(Table):
         return Mat([otherVec * x for x in self])
 
     def cross(self, otherVec):
-        'Compute a Vector or Cross Product with another vector'
+        '''Compute a Vector or Cross Product with another vector'''
         assert len(self) == len(otherVec) == 3, 'Cross product only defined for 3-D vectors'
         u, v = self, otherVec
         return Vec([u[1]*v[2] - u[2]*v[1], u[2]*v[0] - u[0]*v[2], u[0]*v[1] - u[1]*v[0]])
 
     def house(self, index):
-        'Compute a Householder vector which zeroes all but the index element after a reflection'
+        '''Compute a Householder vector which zeroes all but the index element after a reflection'''
         v = Vec(Table([0]*index).concat(self[index:])).normalize()
         t = v[index]
         sigma = 1.0 - t**2
@@ -197,11 +197,11 @@ class Vec(Table):
         return v, 2.0 * t**2 / (sigma + t**2)
 
     def polyval(self, x):
-        'Vec([6, 3, 4]).polyval(5) evaluates to 6*x**2 + 3*x + 4 at x=5'
+        '''Vec([6, 3, 4]).polyval(5) evaluates to 6*x**2 + 3*x + 4 at x=5'''
         return reduce(lambda cum, c: cum*x + c, self, 0.0)
 
     def ratval(self, x):
-        'Vec([10, 20, 30, 40, 50]).ratfit(5) evaluates to (10*x**2 + 20*x + 30) / (40*x**2 + 50*x + 1) at x=5.'
+        '''Vec([10, 20, 30, 40, 50]).ratfit(5) evaluates to (10*x**2 + 20*x + 30) / (40*x**2 + 50*x + 1) at x=5.'''
         degree = len(self) / 2
         num, den = self[:degree+1], self[degree+1:] + [1]
         return num.polyval(x) / den.polyval(x)
@@ -211,40 +211,40 @@ class Matrix(Table):
     __slots__ = ['size', 'rows', 'cols']
 
     def __init__(self, elems):
-        'Form a matrix from a list of lists or a list of Vecs'
+        '''Form a matrix from a list of lists or a list of Vecs'''
         elems = list(elems)
         Table.__init__(self, hasattr(elems[0], 'dot') and elems or map(Vec, map(tuple, elems)))
         self.size = self.rows, self.cols = len(elems), len(elems[0])
 
     def tr(self):
-        'Tranpose elements so that Transposed[i][j] = Original[j][i]'
+        '''Tranpose elements so that Transposed[i][j] = Original[j][i]'''
         return Mat(zip(*self))
 
     def star(self):
-        'Return the Hermetian adjoint so that Star[i][j] = Original[j][i].conjugate()'
+        '''Return the Hermetian adjoint so that Star[i][j] = Original[j][i].conjugate()'''
         return self.tr().conjugate()
 
     def diag(self):
-        'Return a vector composed of elements on the matrix diagonal'
+        '''Return a vector composed of elements on the matrix diagonal'''
         return Vec([self[i][i] for i in range(min(self.size))])
 
     def trace(self):
         return self.diag().sum()
 
     def mmul(self, other):
-        'Matrix multiply by another matrix or a column vector '
+        '''Matrix multiply by another matrix or a column vector '''
         if other.dim == 2:
             return Mat(map(self.mmul, other.tr())).tr()
         assert NPRE or self.cols == len(other)
         return Vec(map(other.dot, self))
 
     def augment(self, otherMat):
-        'Make a new matrix with the two original matrices laid side by side'
+        '''Make a new matrix with the two original matrices laid side by side'''
         assert self.rows == otherMat.rows, 'Size mismatch: %s * %s' % (self.size, otherMat.size)
         return Mat(map(Table.concat, self, otherMat))
 
     def qr(self, ROnly=0):
-        'QR decomposition using Householder reflections: Q*R == self, Q.tr()*Q == I(n), R upper triangular'
+        '''QR decomposition using Householder reflections: Q*R == self, Q.tr()*Q == I(n), R upper triangular'''
         R = self
         m, n = R.size
         for i in range(min(m, n)):
@@ -270,7 +270,7 @@ class Matrix(Table):
         return R.solve(Q.tr().mmul(b))
 
     def solve(self, b):
-        'Divide matrix into a column vector or matrix and iterate to improve the solution'
+        '''Divide matrix into a column vector or matrix and iterate to improve the solution'''
         if b.dim == 2:
             return Mat(map(self.solve, b.tr())).tr()
         assert NPRE or self.rows == len(b), 'Matrix row count %d must match vector length %d' % (self.rows, len(b))
@@ -294,7 +294,7 @@ class Matrix(Table):
 
 class Square(Matrix):
     def lu(self):
-        'Factor a square matrix into lower and upper triangular form such that L.mmul(U) == A'
+        '''Factor a square matrix into lower and upper triangular form such that L.mmul(U) == A'''
         n = self.rows
         L, U = eye(n), Mat(self[:])
         for i in range(n):
@@ -306,7 +306,7 @@ class Square(Matrix):
         return L, U
 
     def __pow__(self, exp):
-        'Raise a square matrix to an integer power (i.e. A**3 is the same as A.mmul(A.mmul(A))'
+        '''Raise a square matrix to an integer power (i.e. A**3 is the same as A.mmul(A.mmul(A))'''
         assert NPRE or exp == int(exp) and exp > 0, 'Matrix powers only defined for positive integers not %s' % exp
         if exp == 1:
             return self
@@ -331,7 +331,7 @@ class Square(Matrix):
         return self
 
     def eigs(self):
-        'Estimate principal eigenvalues using the QR with shifts method'
+        '''Estimate principal eigenvalues using the QR with shifts method'''
         origTrace, origDet = self.trace(), self.det()
         self = self.hessenberg()
         eigvals = Vec([])
@@ -358,7 +358,7 @@ class Triangular(Square):
 
 class UpperTri(Triangular):
     def _solve(self, b):
-        'Solve an upper triangular matrix using backward substitution'
+        '''Solve an upper triangular matrix using backward substitution'''
         x = Vec([])
         for i in range(self.rows - 1, -1, -1):
             assert NPRE or self[i][i], 'Backsub requires non-zero elements on the diagonal'
@@ -368,7 +368,7 @@ class UpperTri(Triangular):
 
 class LowerTri(Triangular):
     def _solve(self, b):
-        'Solve a lower triangular matrix using forward substitution'
+        '''Solve a lower triangular matrix using forward substitution'''
         x = Vec([])
         for i in range(self.rows):
             assert NPRE or self[i][i], 'Forward sub requires non-zero elements on the diagonal'
@@ -377,7 +377,7 @@ class LowerTri(Triangular):
 
 
 def Mat(elems):
-    'Factory function to create a new matrix.'
+    '''Factory function to create a new matrix.'''
     elems = list(elems)
     m, n = len(elems), len(elems[0])
     if m != n:
@@ -409,17 +409,17 @@ def funToVec(tgtfun, low=-1, high=1, steps=40, EqualSpacing=0):
 
 
 def funfit(xvec, yvec, basisfuns):
-    'Solves design matrix for approximating to basis functions'
+    '''Solves design matrix for approximating to basis functions'''
     return Mat([map(form, xvec) for form in basisfuns]).tr().solve(Vec(yvec))
 
 
 def polyfit(xvec, yvec, degree=2):
-    'Solves Vandermonde design matrix for approximating polynomial coefficients'
+    '''Solves Vandermonde design matrix for approximating polynomial coefficients'''
     return Mat([[x**n for n in range(degree, -1, -1)] for x in xvec]).solve(Vec(yvec))
 
 
 def ratfit(xvec, yvec, degree=2):
-    'Solves design matrix for approximating rational polynomial coefficients (a*x**2 + b*x + c)/(d*x**2 + e*x + 1)'
+    '''Solves design matrix for approximating rational polynomial coefficients (a*x**2 + b*x + c)/(d*x**2 + e*x + 1)'''
     return Mat([[x**n for n in range(degree, -1, -1)] + [-y * x**n for n in range(degree, 0, -1)]
                 for x, y in zip(xvec, yvec)]).solve(Vec(yvec))
 
@@ -431,22 +431,22 @@ def genmat(m, n, func):
 
 
 def zeroes(m=1, n=None):
-    'Zero matrix with side length m-by-m or m-by-n.'
+    '''Zero matrix with side length m-by-m or m-by-n.'''
     return genmat(m, n, lambda i, j: 0)
 
 
 def eye(m=1, n=None):
-    'Identity matrix with side length m-by-m or m-by-n'
+    '''Identity matrix with side length m-by-m or m-by-n'''
     return genmat(m, n, lambda i, j: int(i == j))
 
 
 def hilb(m=1, n=None):
-    'Hilbert matrix with side length m-by-m or m-by-n.  Elem[i][j]=1/(i+j+1)'
+    '''Hilbert matrix with side length m-by-m or m-by-n.  Elem[i][j]=1/(i+j+1)'''
     return genmat(m, n, lambda i, j: 1.0 / (i+j+1.0))
 
 
 def rand(m=1, n=None):
-    'Random matrix with side length m-by-m or m-by-n'
+    '''Random matrix with side length m-by-m or m-by-n'''
     return genmat(m, n, lambda i, j: random.random())
 
 
