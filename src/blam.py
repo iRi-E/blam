@@ -464,7 +464,7 @@ def length(vec):
 
 
 def dot(x, y):
-    return sum([x[i] * y[i] for i in range(len(x))])
+    return sum([xi * yi for xi, yi in zip(x, y)])
 
 
 def cbrt(x):
@@ -746,9 +746,8 @@ class SetLineOfSightScalePivot(bpy.types.Operator):
         print(space.pivot_point)
         space.pivot_point = 'CURSOR'
 
-        for i in range(len(objs)):
-            obj = objs[i]
-            obj.select = selStates[i]
+        for obj, select in zip(objs, selStates):
+            obj.select = select
 
         return{'FINISHED'}
 
@@ -1856,8 +1855,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
 
         # loop over grease pencil layers and gather line segments
         vpLineSets = []
-        for i in range(len(gpl)):
-            layer = gpl[i]
+        for layer in gpl:
             if not layer.active_frame:
                 # ignore empty layers
                 continue
@@ -2063,8 +2061,8 @@ class CameraCalibrationOperator(bpy.types.Operator):
                     return{'CANCELLED'}
                 # compute the principal point using a vanishing point from a third gp layer.
                 # this computation does not rely on the order of the line sets
-                vps = [self.computeIntersectionPointForLineSegments(vpLineSets[i]) for i in range(len(vpLineSets))]
-                vps = [self.relImgCoords2ImgPlaneCoords(vps[i], imageWidth, imageHeight, sf) for i in range(len(vps))]
+                vps = [self.computeIntersectionPointForLineSegments(ls) for ls in vpLineSets]
+                vps = [self.relImgCoords2ImgPlaneCoords(vp, imageWidth, imageHeight, sf) for vp in vps]
                 P = self.computeTriangleOrthocenter(vps)
             else:
                 # assume optical center in image midpoint
