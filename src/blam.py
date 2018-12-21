@@ -689,6 +689,7 @@ class SetLineOfSightScalePivot(bpy.types.Operator):
     bl_label = "Set line of sight scale pivot"
     bl_description = "Set the pivot to the camera origin, " \
                      "which makes scaling equivalent to translation along the line of sight"
+    bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         bpy.ops.object.mode_set(mode='OBJECT')
