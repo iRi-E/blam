@@ -483,7 +483,7 @@ def polar(x, y, deg=0):  # radian if deg=0; degree if deg=1
 
 def quadratic(a, b, c=None):
     if c:  # (ax^2 + bx + c = 0)
-        a, b = b / float(a), c / float(a)
+        a, b = b / a, c / a
     t = a / 2.0
     r = t**2 - b
     if r >= 0:  # real roots
@@ -495,7 +495,7 @@ def quadratic(a, b, c=None):
 
 
 def solveCubic(a, b, c, d):
-    a, b, c = b / float(a), c / float(a), d / float(a)
+    a, b, c = b / a, c / a, d / a
     t = a / 3.0
     p, q = b - 3 * t**2, c - b * t + 2 * t**3
     u, v = quadratic(q, -(p/3.0)**3)
@@ -776,13 +776,13 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         sf = cam.data.sensor_fit
         if sf == 'AUTO' and rx < ry or sf == 'VERTICAL':
             fov = cam.data.angle
-            aspect = rx / float(ry)
+            aspect = rx / ry
             h = math.tan(0.5 * fov)
             w = aspect * h
             sx /= aspect
         else:
             fov = cam.data.angle
-            aspect = ry / float(rx)
+            aspect = ry / rx
             w = math.tan(0.5 * fov)
             h = aspect * w
             sy /= aspect
@@ -934,8 +934,8 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         # image onto the subdivided mesh using our projector object.
         bpy.ops.object.modifier_add(type='UV_PROJECT')
         modifier = mesh.modifiers[-1]
-        modifier.aspect_x = context.scene.render.resolution_x / float(context.scene.render.resolution_y)
-        modifier.aspect_y = context.scene.render.resolution_y / float(context.scene.render.resolution_x)
+        modifier.aspect_x = context.scene.render.resolution_x / context.scene.render.resolution_y
+        modifier.aspect_y = context.scene.render.resolution_y / context.scene.render.resolution_x
         modifier.image = img
         modifier.use_image_override = True
         modifier.projectors[0].object = projector
@@ -1487,7 +1487,7 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
                     currVert = verts[idx]
 
                     for i in range(3):
-                        mean[i] = mean[i] + currVert[i] / float(len(vs))
+                        mean[i] = mean[i] + currVert[i] / len(vs)
 
                 for idx in vs:
                     verts[idx] = mean
@@ -1513,12 +1513,12 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
 
             vCamSpace = cmi * mm * v.co.to_4d()
             for i in range(3):
-                inMeanPos[i] = inMeanPos[i] + vCamSpace[i] / float(len(inMesh.data.vertices))
+                inMeanPos[i] = inMeanPos[i] + vCamSpace[i] / len(inMesh.data.vertices)
 
         outMeanPos = [0.0] * 3
         for v in outMesh.data.vertices:
             for i in range(3):
-                outMeanPos[i] = outMeanPos[i] + v.co[i] / float(len(outMesh.data.vertices))
+                outMeanPos[i] = outMeanPos[i] + v.co[i] / len(outMesh.data.vertices)
 
         inDistance = math.sqrt(sum([x * x for x in inMeanPos]))
         outDistance = math.sqrt(sum([x * x for x in outMeanPos]))
