@@ -2177,8 +2177,24 @@ class BLAMProps(bpy.types.PropertyGroup):
         default=('hq'))
 
 
+classes = (
+    BLAMProps,
+    # ProjectorCalibrationPanel,
+    # CreateProjectorCalibrationWindowOperator,
+    # SetCalibrationWindowToClipEditor,
+    # SetCalibrationWindowToView3D,
+    PhotoModelingToolsPanel,
+    SetLineOfSightScalePivot,
+    ProjectBackgroundImageOntoMeshOperator,
+    Reconstruct3DMeshOperator,
+    CameraCalibrationPanel,
+    CameraCalibrationOperator,
+)
+
+
 def register():
-    bpy.utils.register_module(__name__)
+    for cls in classes:
+        bpy.utils.register_class(cls)
 
     bpy.types.Scene.blam = bpy.props.PointerProperty(type=BLAMProps)
 
@@ -2186,7 +2202,8 @@ def register():
 def unregister():
     del bpy.types.Scene.blam
 
-    bpy.utils.unregister_module(__name__)
+    for cls in classes:
+        bpy.utils.unregister_class(cls)
 
 
 if __name__ == "__main__":
