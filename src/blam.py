@@ -679,7 +679,7 @@ class SetLineOfSightScalePivot(bpy.types.Operator):
     bl_idname = "object.set_los_scale_pivot"
     bl_label = "Set line of sight scale pivot"
     bl_description = "Set the pivot to the camera origin, " \
-                     "which makes scaling equivalent to translation along the line of sight."
+                     "which makes scaling equivalent to translation along the line of sight"
 
     def execute(self, context):
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -711,7 +711,7 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
     bl_idname = "object.project_bg_onto_mesh"
     bl_label = "Project background image onto mesh"
     bl_description = "Projects the current 3D view background image onto a mesh (the active object) " \
-                     "from the active camera."
+                     "from the active camera"
     bl_options = {'REGISTER', 'UNDO'}
 
     projectorName = 'tex_projector'
@@ -975,7 +975,7 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
     bl_label = "Reconstruct 3D geometry"
     bl_description = "Reconstructs a 3D mesh with rectangular faces " \
                      "based on a mesh with faces lining up with the corresponding faces in the image. " \
-                     "Relies on the active camera being properly calibrated."
+                     "Relies on the active camera being properly calibrated"
     bl_options = {'REGISTER', 'UNDO'}
 
     def evalEq17(self, origin, p1, p2):
@@ -1658,7 +1658,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
     bl_idname = "object.estimate_focal_length"
     bl_label = "Calibrate active camera"
     bl_description = "Computes the focal length and orientation of the active camera based on " \
-                     "the provided grease pencil strokes."
+                     "the provided grease pencil strokes"
     bl_options = {'REGISTER', 'UNDO'}
 
     def computeSecondVanishingPoint(self, Fu, f, P, horizonDir):
@@ -2098,41 +2098,41 @@ class BLAMProps(bpy.types.PropertyGroup):
 
     calibration_type: bpy.props.EnumProperty(
         name="Method",
-        description="The type of calibration method to use.",
+        description="The type of calibration method to use",
         items=[('one_vp', "one vanishing point",
                 "Estimates the camera orientation using a known focal length, "
-                "a single vanishing point and an optional horizon tilt angle."),
+                "a single vanishing point and an optional horizon tilt angle"),
                ('two_vp', "two vanishing points",
                 "Estimates the camera focal length and orientation from two vanishing points")],
         default=('two_vp'))
 
     vp1_axis: bpy.props.EnumProperty(
         name="Parallel to the",
-        description="The axis to which the line segments from the first layer are parallel.",
+        description="The axis to which the line segments from the first layer are parallel",
         items=[('x', "x axis", "xd"), ('y', "y axis", "yd"), ('z', "z axis", "zd")],
         default=('x'))
 
     vp2_axis: bpy.props.EnumProperty(
         name="Parallel to the",
-        description="The axis to which the line segments from the second layer are parallel.",
+        description="The axis to which the line segments from the second layer are parallel",
         items=[('x', "x axis", "xd"), ('y', "y axis", "yd"), ('z', "z axis", "zd")],
         default=('y'))
 
     up_axis: bpy.props.EnumProperty(
         name="Up axis",
-        description="The up axis for single vanishing point calibration.",
+        description="The up axis for single vanishing point calibration",
         items=[('x', "x axis", "xd"), ('y', "y axis", "yd"), ('z', "z axis", "zd")],
         default=('z'))
 
     optical_center_type: bpy.props.EnumProperty(
         name="Optical center",
-        description="How the optical center is computed for calibration using two vanishing points.",
+        description="How the optical center is computed for calibration using two vanishing points",
         items=[('mid', "Image midpoint",
-                "Assume the optical center coincides with the image midpoint (reasonable in most cases)."),
+                "Assume the optical center coincides with the image midpoint (reasonable in most cases)"),
                ('camdata', "From camera data",
-                "Get a known optical center from the current camera data."),
+                "Get a known optical center from the current camera data"),
                ('compute', "From 3rd vanishing point",
-                "Computes the optical center using a third vanishing point from grease pencil layer 3.")],
+                "Computes the optical center using a third vanishing point from grease pencil layer 3")],
         default=('mid'))
 
     # vp1_only: bpy.props.BoolProperty(
@@ -2143,29 +2143,29 @@ class BLAMProps(bpy.types.PropertyGroup):
     set_cambg: bpy.props.BoolProperty(
         name="Set background image",
         description="Automatically set the current movie clip as the camera background image "
-                    "when performing camera calibration (works only when a 3D view-port is visible).",
+                    "when performing camera calibration (works only when a 3D view-port is visible)",
         default=True)
 
     use_horizon_segment: bpy.props.BoolProperty(
         name="Compute from grease pencil stroke",
         description="Extract the horizon angle from a single line segment in the second grease pencil layer. "
-                    "If unchecked, the horizon angle is set to 0.",
+                    "If unchecked, the horizon angle is set to 0",
         default=True)
 
     # 3D reconstruction stuff
 
     separate_faces: bpy.props.BoolProperty(
         name="Separate faces",
-        description="Do not join the faces in the reconstructed mesh. Useful for finding problematic faces.",
+        description="Do not join the faces in the reconstructed mesh. Useful for finding problematic faces",
         default=False)
 
     projection_method: bpy.props.EnumProperty(
         name="Method",
-        description="The method to use to project the image onto the mesh.",
+        description="The method to use to project the image onto the mesh",
         items=[('simple', "simple",
-                "Uses UV coordinates projected from the camera view. May give warping on large faces."),
+                "Uses UV coordinates projected from the camera view. May give warping on large faces"),
                ('hq', "high quality",
-                "Uses a UV Project modifier combined with a simple subdivision modifier.")],
+                "Uses a UV Project modifier combined with a simple subdivision modifier")],
         default=('hq'))
 
 
