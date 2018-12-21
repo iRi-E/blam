@@ -38,8 +38,8 @@ bl_info = {
 # Public domain pure python linear algebra
 # stuff from http://users.rcn.com/python/download/python.htm
 #
-import operator, math, random
-from functools import reduce
+import operator, math, random  # noqa
+from functools import reduce   # noqa
 NPRE, NPOST = 0, 0                    # Disables pre and post condition checks
 
 
