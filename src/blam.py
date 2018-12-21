@@ -512,41 +512,6 @@ def solveCubic(a, b, c, d):
     return x1, x2, x3
 
 
-# helper function to determine if the current version
-# of the python api represents matrices as column major
-# or row major.
-'''
-def arePythonMatricesRowMajor():
-
-
-    v = bpy.app.version
-    is262OrGreater = v[0] >= 2 and v[1] >= 62
-    is260OrLess = v[0] <= 2 and v[1] <= 60
-    is261 = v[0] == 2 and v[1] == 61
-    rev = bpy.app.build_revision
-
-    if is262OrGreater:
-        return True
-
-    if is260OrLess:
-        return False
-
-    # apparently, build_revision is not always just a number:
-    # http://code.google.com/p/blam/issues/detail?id=11
-    # TODO: find out what the format of bpy.app.build_revision is
-    # for now, remove anything that isn't a digit
-    digits = [str(d) for d in range(9)]
-    numberString = ''
-    for ch in rev:
-        if ch in digits:
-            numberString = numberString + ch
-
-    # do revision check if we're running 2.61
-    # matrices are row major starting in revision r42816
-    return int(numberString) >= 42816
-'''
-
-
 # helper function that returns the faces of a mesh. in bmesh builds,
 # this is a list of polygons, and in pre-bmesh builds this is a list
 # of triangles and quads
@@ -794,9 +759,6 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         pm[2][3] = 2 * near * far / (near - far)
         pm[3][2] = -1.0
         pm[3][3] = 0.0
-
-        # if not arePythonMatricesRowMajor():
-        #    pm.transpose()
 
         returnVerts = []
 
@@ -1800,7 +1762,6 @@ class CameraCalibrationOperator(bpy.types.Operator):
         M[2][1] = f / s2
         M[2][2] = wpRc[2]
 
-        # if arePythonMatricesRowMajor():
         M.transpose()
 
         return M
