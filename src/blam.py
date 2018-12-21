@@ -1821,7 +1821,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
                     line = [p.co[0:2] for p in s.points]
                     lines.append(line)
 
-            vpLineSets.append(lines)
+            vpLineSets.insert(0, lines)
         return vpLineSets
 
     def computeIntersectionPointForLineSegments(self, lineSet):
