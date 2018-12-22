@@ -526,17 +526,17 @@ class ProjectorCalibrationPanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         row = layout.row()
-        row.operator("object.create_proj_calib_win")
+        row.operator("blam.create_proj_calib_win")
 
         row = layout.row()
-        row.operator("object.set_calib_window_to_clip")
+        row.operator("blam.set_calib_window_to_clip")
 
         row = layout.row()
-        row.operator("object.set_calib_window_to_view3d")
+        row.operator("blam.set_calib_window_to_view3d")
 
 
 class CreateProjectorCalibrationWindowOperator(bpy.types.Operator):
-    bl_idname = "object.create_proj_calib_win"
+    bl_idname = "blam.create_proj_calib_win"
     bl_label = "Create calibration window"
     bl_description = "TODO"
 
@@ -550,7 +550,7 @@ class CreateProjectorCalibrationWindowOperator(bpy.types.Operator):
 
 
 class SetCalibrationWindowToClipEditor(bpy.types.Operator):
-    bl_idname = "object.set_calib_window_to_clip"
+    bl_idname = "blam.set_calib_window_to_clip"
     bl_label = "Clip editor"
     bl_description = ""
 
@@ -597,7 +597,7 @@ class SetCalibrationWindowToClipEditor(bpy.types.Operator):
 
 
 class SetCalibrationWindowToView3D(bpy.types.Operator):
-    bl_idname = "object.set_calib_window_to_view3d"
+    bl_idname = "blam.set_calib_window_to_view3d"
     bl_label = "3D view"
     bl_description = ""
 
@@ -664,19 +664,19 @@ class PhotoModelingToolsPanel(bpy.types.Panel):
 
         row = layout.row()
         box = row.box()
-        box.operator("object.compute_depth_information")
+        box.operator("blam.reconstruct_mesh_with_rects")
         box.prop(props, "separate_faces")
         row = layout.row()
         box = row.box()
 
-        box.operator("object.project_bg_onto_mesh")
+        box.operator("blam.project_bg_onto_mesh")
         box.prop(props, "projection_method")
-        # self.layout.operator("object.make_edge_x")
-        layout.operator("object.set_los_scale_pivot")
+        # self.layout.operator("blam.make_edge_x")
+        layout.operator("blam.set_los_scale_pivot")
 
 
 class SetLineOfSightScalePivot(bpy.types.Operator):
-    bl_idname = "object.set_los_scale_pivot"
+    bl_idname = "blam.set_los_scale_pivot"
     bl_label = "Set line of sight scale pivot"
     bl_description = "Set the pivot to the camera origin, " \
                      "which makes scaling equivalent to translation along the line of sight"
@@ -709,7 +709,7 @@ class SetLineOfSightScalePivot(bpy.types.Operator):
 
 
 class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
-    bl_idname = "object.project_bg_onto_mesh"
+    bl_idname = "blam.project_bg_onto_mesh"
     bl_label = "Project background image onto mesh"
     bl_description = "Projects the current 3D view background image onto a mesh (the active object) " \
                      "from the active camera"
@@ -972,7 +972,7 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
 
 
 class Reconstruct3DMeshOperator(bpy.types.Operator):
-    bl_idname = "object.compute_depth_information"
+    bl_idname = "blam.reconstruct_mesh_with_rects"
     bl_label = "Reconstruct 3D geometry"
     bl_description = "Reconstructs a 3D mesh with rectangular faces " \
                      "based on a mesh with faces lining up with the corresponding faces in the image. " \
@@ -1645,9 +1645,9 @@ class CameraCalibrationPanel(bpy.types.Panel):
             row.prop(props, "optical_center_type")
         # TODO layout.prop(props, "vp1_only")
 
-        layout.operator("object.gp_layers_to_estimate_focal_length")
+        layout.operator("blam.setup_grease_pencil_layers")
         layout.prop(props, "set_cambg")
-        layout.operator("object.estimate_focal_length")
+        layout.operator("blam.calibrate_active_camera")
 
 
 class CameraCalibrationOperator(bpy.types.Operator):
@@ -1657,7 +1657,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
     from a Single Image" by E. Guillou, D. Meneveaux, E. Maisel, K. Bouatouch.
     (http://www.irisa.fr/prive/kadi/Reconstruction/paper.ps.gz).
     '''
-    bl_idname = "object.estimate_focal_length"
+    bl_idname = "blam.calibrate_active_camera"
     bl_label = "Calibrate active camera"
     bl_description = "Computes the focal length and orientation of the active camera based on " \
                      "the provided grease pencil strokes"
@@ -2095,7 +2095,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
 
 
 class SetupGreasePencilLayers(bpy.types.Operator):
-    bl_idname = "object.gp_layers_to_estimate_focal_length"
+    bl_idname = "blam.setup_grease_pencil_layers"
     bl_label = "Setup Grease Pencil Layers"
     bl_description = "Setup Grease Pencil layers according to parameters of the camera calibration tool"
     bl_options = {'REGISTER', 'UNDO'}
