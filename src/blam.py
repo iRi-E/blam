@@ -1651,6 +1651,7 @@ class CameraCalibrationPanel(bpy.types.Panel):
             row.prop(props, "optical_center_type")
         # TODO layout.prop(props, "vp1_only")
 
+        layout.operator("object.gp_layers_to_estimate_focal_length")
         layout.prop(props, "set_cambg")
         layout.operator("object.estimate_focal_length")
 
@@ -2099,6 +2100,60 @@ class CameraCalibrationOperator(bpy.types.Operator):
         return{'FINISHED'}
 
 
+class SetupGreasePencilLayers(bpy.types.Operator):
+    bl_idname = "object.gp_layers_to_estimate_focal_length"
+    bl_label = "Setup Grease Pencil Layers"
+    bl_description = "Setup Grease Pencil layers according to parameters of the camera calibration tool"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    axis_colors = {'x': (1, 0, 0), 'y': (0, 1, 0), 'z': (0, 0, 1)}
+
+    def axisName(self, axis):
+        return (axis, "{} axis".format(axis))
+
+    def execute(self, context):
+        props = context.scene.blam
+        activeSpace = context.space_data
+
+        if not activeSpace.clip:
+            self.report({'ERROR'}, "There is no active movie clip.")
+            return {'CANCELLED'}
+
+        axes = [self.axisName(props.vp1_axis)]
+
+        if props.calibration_type == 'one_vp' and props.use_horizon_segment:
+            for axis, color in self.axis_colors.items():
+                if axis != props.vp1_axis and axis != props.up_axis:
+                    axes.append((axis, "Horizon"))
+                    break
+        elif props.calibration_type == 'two_vp':
+            axes.append(self.axisName(props.vp2_axis))
+
+            if props.optical_center_type == 'compute':
+                for axis, color in self.axis_colors.items():
+                    if axis != props.vp1_axis and axis != props.vp2_axis:
+                        axes.append(self.axisName(axis))
+                        break
+
+        activeSpace.grease_pencil_source = 'CLIP'
+        activeSpace.show_grease_pencil = True
+
+        if not activeSpace.clip.grease_pencil:
+            bpy.ops.gpencil.data_add()
+
+        gpl = activeSpace.clip.grease_pencil.layers
+
+        for layer in gpl:
+            gpl.remove(layer)
+
+        for axis, name in axes:
+            layer = gpl.new(name, set_active=True)
+            layer.tint_color = self.axis_colors[axis]
+            layer.tint_factor = 1.0
+
+        return {'FINISHED'}
+
+
 class BLAMProps(bpy.types.PropertyGroup):
 
     # Focal length and orientation estimation stuff
@@ -2188,6 +2243,7 @@ classes = (
     Reconstruct3DMeshOperator,
     CameraCalibrationPanel,
     CameraCalibrationOperator,
+    SetupGreasePencilLayers,
 )
 
 
