@@ -517,7 +517,7 @@ def solveCubic(a, b, c, d):
 # PROJECTOR CALIBRATION STUFF
 #
 
-class ProjectorCalibrationPanel(bpy.types.Panel):
+class BLAM_PT_projector_calibration(bpy.types.Panel):
     bl_label = "Video Projector Calibration"
     bl_space_type = "CLIP_EDITOR"
     bl_region_type = "TOOLS"
@@ -534,7 +534,7 @@ class ProjectorCalibrationPanel(bpy.types.Panel):
         row.operator("blam.set_calib_window_to_view3d")
 
 
-class CreateProjectorCalibrationWindowOperator(bpy.types.Operator):
+class BLAM_OT_create_proj_calib_win(bpy.types.Operator):
     bl_idname = "blam.create_proj_calib_win"
     bl_label = "Create Calibration Window"
     bl_description = "TODO"
@@ -548,7 +548,7 @@ class CreateProjectorCalibrationWindowOperator(bpy.types.Operator):
         return bpy.ops.screen.area_dupli('INVOKE_DEFAULT')
 
 
-class SetCalibrationWindowToClipEditor(bpy.types.Operator):
+class BLAM_OT_set_calib_window_to_clip(bpy.types.Operator):
     bl_idname = "blam.set_calib_window_to_clip"
     bl_label = "Clip Editor"
     bl_description = ""
@@ -595,7 +595,7 @@ class SetCalibrationWindowToClipEditor(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SetCalibrationWindowToView3D(bpy.types.Operator):
+class BLAM_OT_set_calib_window_to_view3d(bpy.types.Operator):
     bl_idname = "blam.set_calib_window_to_view3d"
     bl_label = "3D View"
     bl_description = ""
@@ -652,7 +652,7 @@ class SetCalibrationWindowToView3D(bpy.types.Operator):
 # CAMERA CALIBRATION STUFF
 #
 
-class PhotoModelingToolsPanel(bpy.types.Panel):
+class BLAM_PT_photo_modeling_tools(bpy.types.Panel):
     bl_label = "Photo Modeling Tools"
     bl_space_type = "VIEW_3D"
     bl_region_type = "TOOLS"
@@ -675,7 +675,7 @@ class PhotoModelingToolsPanel(bpy.types.Panel):
         layout.operator("blam.set_los_scale_pivot", icon='CURSOR')
 
 
-class SetLineOfSightScalePivot(bpy.types.Operator):
+class BLAM_OT_set_los_scale_pivot(bpy.types.Operator):
     bl_idname = "blam.set_los_scale_pivot"
     bl_label = "Set Line of Sight Scale Pivot"
     bl_description = "Set the pivot to the camera origin, " \
@@ -708,7 +708,7 @@ class SetLineOfSightScalePivot(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
+class BLAM_OT_project_bg_onto_mesh(bpy.types.Operator):
     bl_idname = "blam.project_bg_onto_mesh"
     bl_label = "Project Background Image onto Mesh"
     bl_description = "Projects the current 3D view background image onto a mesh (the active object) " \
@@ -956,7 +956,7 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class Reconstruct3DMeshOperator(bpy.types.Operator):
+class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
     bl_idname = "blam.reconstruct_mesh_with_rects"
     bl_label = "Reconstruct 3D Geometry"
     bl_description = "Reconstructs a 3D mesh with rectangular faces " \
@@ -1594,7 +1594,7 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class CameraCalibrationPanel(bpy.types.Panel):
+class BLAM_PT_camera_calibration(bpy.types.Panel):
     '''The GUI for the focal length and camera orientation functionality.'''
     bl_label = "Static Camera Calibration"
     bl_space_type = "CLIP_EDITOR"
@@ -1635,7 +1635,7 @@ class CameraCalibrationPanel(bpy.types.Panel):
         layout.operator("blam.calibrate_active_camera", icon='CAMERA_DATA')
 
 
-class CameraCalibrationOperator(bpy.types.Operator):
+class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
     '''\brief This operator handles estimation of focal length and camera orientation
     from input line segments. All sections numbers, equations numbers etc
     refer to "Using Vanishing Points for Camera Calibration and Coarse 3D Reconstruction
@@ -2078,7 +2078,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SetupGreasePencilLayers(bpy.types.Operator):
+class BLAM_OT_setup_grease_pencil_layers(bpy.types.Operator):
     bl_idname = "blam.setup_grease_pencil_layers"
     bl_label = "Setup Grease Pencil Layers"
     bl_description = "Setup Grease Pencil layers according to parameters of the camera calibration tool"
@@ -2218,17 +2218,17 @@ class BLAMProps(bpy.types.PropertyGroup):
 
 classes = (
     BLAMProps,
-    # ProjectorCalibrationPanel,
-    # CreateProjectorCalibrationWindowOperator,
-    # SetCalibrationWindowToClipEditor,
-    # SetCalibrationWindowToView3D,
-    PhotoModelingToolsPanel,
-    SetLineOfSightScalePivot,
-    ProjectBackgroundImageOntoMeshOperator,
-    Reconstruct3DMeshOperator,
-    CameraCalibrationPanel,
-    CameraCalibrationOperator,
-    SetupGreasePencilLayers,
+    # BLAM_PT_projector_calibration,
+    # BLAM_OT_create_proj_calib_win,
+    # BLAM_OT_set_calib_window_to_clip,
+    # BLAM_OT_set_calib_window_to_view3d,
+    BLAM_PT_photo_modeling_tools,
+    BLAM_OT_set_los_scale_pivot,
+    BLAM_OT_project_bg_onto_mesh,
+    BLAM_OT_reconstruct_mesh_with_rects,
+    BLAM_PT_camera_calibration,
+    BLAM_OT_calibrate_active_camera,
+    BLAM_OT_setup_grease_pencil_layers,
 )
 
 
