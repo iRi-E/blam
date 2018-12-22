@@ -536,28 +536,28 @@ class ProjectorCalibrationPanel(bpy.types.Panel):
 
 class CreateProjectorCalibrationWindowOperator(bpy.types.Operator):
     bl_idname = "blam.create_proj_calib_win"
-    bl_label = "Create calibration window"
+    bl_label = "Create Calibration Window"
     bl_description = "TODO"
 
     def execute(self, context):
         ws = context.window_manager.windows
         if len(ws) > 1:
             self.report({'ERROR'}, "Other windows exist. Close them and try again.")
-            return{'CANCELLED'}
+            return {'CANCELLED'}
 
         return bpy.ops.screen.area_dupli('INVOKE_DEFAULT')
 
 
 class SetCalibrationWindowToClipEditor(bpy.types.Operator):
     bl_idname = "blam.set_calib_window_to_clip"
-    bl_label = "Clip editor"
+    bl_label = "Clip Editor"
     bl_description = ""
 
     def execute(self, context):
         windows = context.window_manager.windows
         if len(windows) > 2:
             self.report({'ERROR'}, "Expected two windows. Found " + str(len(windows)))
-            return{'CANCELLED'}
+            return {'CANCELLED'}
 
         # operate on the window with one area
         window = None
@@ -569,7 +569,7 @@ class SetCalibrationWindowToClipEditor(bpy.types.Operator):
 
         if not window:
             self.report({'ERROR'}, "Could not find single area window.")
-            return{'CANCELLED'}
+            return {'CANCELLED'}
 
         area = window.screen.areas[0]
 
@@ -592,19 +592,19 @@ class SetCalibrationWindowToClipEditor(bpy.types.Operator):
         bpy.ops.clip.view_all(override)
         bpy.ops.clip.view_zoom_ratio(override, ratio=1)
 
-        return{'FINISHED'}
+        return {'FINISHED'}
 
 
 class SetCalibrationWindowToView3D(bpy.types.Operator):
     bl_idname = "blam.set_calib_window_to_view3d"
-    bl_label = "3D view"
+    bl_label = "3D View"
     bl_description = ""
 
     def execute(self, context):
         windows = context.window_manager.windows
         if len(windows) > 2:
             self.report({'ERROR'}, "Expected two windows. Found " + str(len(windows)))
-            return{'CANCELLED'}
+            return {'CANCELLED'}
 
         # operate on the window with one area
         window = None
@@ -616,7 +616,7 @@ class SetCalibrationWindowToView3D(bpy.types.Operator):
 
         if not window:
             self.report({'ERROR'}, "Could not find single area window.")
-            return{'CANCELLED'}
+            return {'CANCELLED'}
 
         area = window.screen.areas[0]
 
@@ -645,7 +645,7 @@ class SetCalibrationWindowToView3D(bpy.types.Operator):
 
         bpy.ops.view3d.zoom_camera_1_to_1(override)
 
-        return{'FINISHED'}
+        return {'FINISHED'}
 
 
 #
@@ -676,7 +676,7 @@ class PhotoModelingToolsPanel(bpy.types.Panel):
 
 class SetLineOfSightScalePivot(bpy.types.Operator):
     bl_idname = "blam.set_los_scale_pivot"
-    bl_label = "Set line of sight scale pivot"
+    bl_label = "Set Line of Sight Scale Pivot"
     bl_description = "Set the pivot to the camera origin, " \
                      "which makes scaling equivalent to translation along the line of sight"
     bl_options = {'REGISTER', 'UNDO'}
@@ -704,12 +704,12 @@ class SetLineOfSightScalePivot(bpy.types.Operator):
         for obj, select in zip(objs, selStates):
             obj.select = select
 
-        return{'FINISHED'}
+        return {'FINISHED'}
 
 
 class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
     bl_idname = "blam.project_bg_onto_mesh"
-    bl_label = "Project background image onto mesh"
+    bl_label = "Project Background Image onto Mesh"
     bl_description = "Projects the current 3D view background image onto a mesh (the active object) " \
                      "from the active camera"
     bl_options = {'REGISTER', 'UNDO'}
@@ -903,10 +903,10 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
 
         if mesh is None:
             self.report({'ERROR'}, "There is no active object")
-            return{'CANCELLED'}
+            return {'CANCELLED'}
         elif 'Mesh' not in str(type(mesh.data)):
             self.report({'ERROR'}, "The active object is not a mesh")
-            return{'CANCELLED'}
+            return {'CANCELLED'}
 
         #
         # Get the current camera
@@ -914,13 +914,13 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         camera = context.scene.camera
         if not camera:
             self.report({'ERROR'}, "No active camera.")
-            return{'CANCELLED'}
+            return {'CANCELLED'}
 
         activeSpace = context.area.spaces.active
 
         if len(activeSpace.background_images) == 0:
             self.report({'ERROR'}, "No backround images of clips found.")
-            return{'CANCELLED'}
+            return {'CANCELLED'}
 
         # check what kind of background we're dealing with
         bg = activeSpace.background_images[0]
@@ -933,11 +933,11 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
                 img = bpy.data.images.load(path)
             except RuntimeError:
                 self.report({'ERROR'}, "Cannot load image %s" % path)
-                return{'CANCELLED'}
+                return {'CANCELLED'}
         else:
             # shouldnt end up here
             self.report({'ERROR'}, "Both background clip and image are None")
-            return{'CANCELLED'}
+            return {'CANCELLED'}
 
         # if we made it here, we have a camera, a mesh and an image.
         self.prepareMesh(mesh)
@@ -948,16 +948,16 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
             self.performSimpleProjection(context, camera, mesh, img)
         else:
             self.report({'ERROR'}, "Unknown projection method")
-            return{'CANCELLED'}
+            return {'CANCELLED'}
 
         activeSpace.viewport_shade = 'TEXTURED'
 
-        return{'FINISHED'}
+        return {'FINISHED'}
 
 
 class Reconstruct3DMeshOperator(bpy.types.Operator):
     bl_idname = "blam.reconstruct_mesh_with_rects"
-    bl_label = "Reconstruct 3D geometry"
+    bl_label = "Reconstruct 3D Geometry"
     bl_description = "Reconstructs a 3D mesh with rectangular faces " \
                      "based on a mesh with faces lining up with the corresponding faces in the image. " \
                      "Relies on the active camera being properly calibrated"
@@ -1164,12 +1164,12 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         quadFacePairsBySharedEdge = {}
 
         def indexOfFace(fcs, face):
-                i = 0
-                for f in fcs:
-                    if f == face:
-                        return i
-                    i = i + 1
-                assert(False)  # could not find the face. should not end up here...
+            i = 0
+            for f in fcs:
+                if f == face:
+                    return i
+                i = i + 1
+            assert(False)  # could not find the face. should not end up here...
 
         # loop over all edges...
         unsharedEdgeCount = 0  # the number of edges beloning to less than two faces
@@ -1523,19 +1523,19 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
 
         if self.mesh is None:
             self.report({'ERROR'}, "There is no active object")
-            return{'CANCELLED'}
+            return {'CANCELLED'}
         if 'Mesh' not in str(type(self.mesh.data)):
             self.report({'ERROR'}, "The active object is not a mesh")
-            return{'CANCELLED'}
+            return {'CANCELLED'}
         if len(self.mesh.data.polygons) == 0:
             self.report({'ERROR'}, "The mesh does not have any faces.")
-            return{'CANCELLED'}
+            return {'CANCELLED'}
         if not self.areAllMeshFacesQuads(self.mesh):
             self.report({'ERROR'}, "The mesh must consist of quad faces only.")
-            return{'CANCELLED'}
+            return {'CANCELLED'}
         if not self.areAllMeshFacesConnected(self.mesh):
             self.report({'ERROR'}, "All faces of the input mesh must be connected.")
-            return{'CANCELLED'}
+            return {'CANCELLED'}
 
         #
         # process all quads from the mesh individually, computing vertex depth
@@ -1590,13 +1590,11 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         uniformScale = self.getOutputMeshScale(self.camera, self.mesh, m)
         m.scale = [uniformScale] * 3
 
-        return{'FINISHED'}
+        return {'FINISHED'}
 
 
 class CameraCalibrationPanel(bpy.types.Panel):
-    '''
-    The GUI for the focal length and camera orientation functionality.
-    '''
+    '''The GUI for the focal length and camera orientation functionality.'''
     bl_label = "Static Camera Calibration"
     bl_space_type = "CLIP_EDITOR"
     bl_region_type = "TOOLS"
@@ -1642,7 +1640,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
     (http://www.irisa.fr/prive/kadi/Reconstruction/paper.ps.gz).
     '''
     bl_idname = "blam.calibrate_active_camera"
-    bl_label = "Calibrate active camera"
+    bl_label = "Calibrate Active Camera"
     bl_description = "Computes the focal length and orientation of the active camera based on " \
                      "the provided grease pencil strokes"
     bl_options = {'REGISTER', 'UNDO'}
@@ -1745,8 +1743,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
         return M
 
     def alignCoordinateAxes(self, M, ax1, ax2):
-        '''
-        Modifies the original camera transform to make the coordinate axes line
+        '''Modifies the original camera transform to make the coordinate axes line
         up as specified.
         :param M: the original camera rotation matrix
         :param ax1: The index of the axis to align with the first layer segments.
@@ -1880,7 +1877,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
         cam = context.scene.camera
         if not cam:
             self.report({'ERROR'}, "No active camera.")
-            return{'CANCELLED'}
+            return {'CANCELLED'}
 
         #
         # check settings
@@ -1891,7 +1888,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
 
             if upAxisIndex == vp1AxisIndex:
                 self.report({'ERROR'}, "The up axis cannot be parallel to the axis of the line set.")
-                return{'CANCELLED'}
+                return {'CANCELLED'}
             vp2AxisIndex = (set([0, 1, 2]) ^ set([upAxisIndex, vp1AxisIndex])).pop()
             vpAxisIndices = [vp1AxisIndex, vp2AxisIndex]
         else:
@@ -1902,7 +1899,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
 
             if vpAxisIndices[0] == vpAxisIndices[1]:
                 self.report({'ERROR'}, "The two line sets cannot be parallel to the same axis.")
-                return{'CANCELLED'}
+                return {'CANCELLED'}
 
         #
         # gather lines for each vanishing point
@@ -1911,39 +1908,39 @@ class CameraCalibrationOperator(bpy.types.Operator):
 
         if not activeSpace.clip:
             self.report({'ERROR'}, "There is no active movie clip.")
-            return{'CANCELLED'}
+            return {'CANCELLED'}
 
         # check that we have the number of layers we need
         if not activeSpace.clip.grease_pencil:
             self.report({'ERROR'}, "There is no grease pencil datablock.")
-            return{'CANCELLED'}
+            return {'CANCELLED'}
         gpl = activeSpace.clip.grease_pencil.layers
         if len(gpl) == 0:
             self.report({'ERROR'}, "There are no grease pencil layers.")
-            return{'CANCELLED'}
+            return {'CANCELLED'}
         if len(gpl) < 2 and not singleVp:
             self.report({'ERROR'}, "Calibration using two vanishing points requires two grease pencil layers.")
-            return{'CANCELLED'}
+            return {'CANCELLED'}
         if len(gpl) < 2 and singleVp and useHorizonSegment:
             self.report(
                 {'ERROR'},
                 "Single vanishing point calibration with a custom horizon line requires two grease pencil layers")
-            return{'CANCELLED'}
+            return {'CANCELLED'}
 
         vpLineSets = self.gatherGreasePencilSegments(gpl)
 
         # check that we have the expected number of line segment strokes
         if len(vpLineSets[0]) < 2:
             self.report({'ERROR'}, "The first grease pencil layer must contain at least two line segment strokes.")
-            return{'CANCELLED'}
+            return {'CANCELLED'}
         if not singleVp and len(vpLineSets[1]) < 2:
             self.report({'ERROR'}, "The second grease pencil layer must contain at least two line segment strokes.")
-            return{'CANCELLED'}
+            return {'CANCELLED'}
         if singleVp and useHorizonSegment and len(vpLineSets[1]) != 1:
             self.report(
                 {'ERROR'},
                 "The second grease pencil layer must contain exactly one line segment stroke (the horizon line).")
-            return{'CANCELLED'}
+            return {'CANCELLED'}
 
         #
         # get the principal point P in image plane coordinates
@@ -1997,7 +1994,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
             elif props.optical_center_type == 'compute':
                 if len(vpLineSets) < 3:
                     self.report({'ERROR'}, "A third grease pencil layer is needed to compute the optical center.")
-                    return{'CANCELLED'}
+                    return {'CANCELLED'}
                 # compute the principal point using a vanishing point from a third gp layer.
                 # this computation does not rely on the order of the line sets
                 vps = [self.computeIntersectionPointForLineSegments(ls) for ls in vpLineSets]
@@ -2026,7 +2023,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
 
             if f is None:
                 self.report({'ERROR'}, "Failed to compute focal length. Invalid vanishing point constellation.")
-                return{'CANCELLED'}
+                return {'CANCELLED'}
 
         #
         # compute camera orientation
@@ -2040,7 +2037,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
         eps = 0.00001
         if 1.0 - M.determinant() < -eps or 1.0 - M.determinant() > eps:
             self.report({'ERROR'}, "Non unit rotation matrix determinant: " + str(M.determinant()))
-            # return{'CANCELLED'}
+            # return {'CANCELLED'}
 
         # align the camera to the coordinate axes as specified
         M = self.alignCoordinateAxes(M, vpAxisIndices[0], vpAxisIndices[1])
@@ -2075,7 +2072,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
         if setBgImg:
             bpy.ops.clip.set_viewport_background()
 
-        return{'FINISHED'}
+        return {'FINISHED'}
 
 
 class SetupGreasePencilLayers(bpy.types.Operator):
