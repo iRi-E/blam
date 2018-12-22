@@ -933,7 +933,7 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
             self.report({'ERROR'}, "No active camera.")
             return {'CANCELLED'}
 
-        activeSpace = context.area.spaces.active
+        activeSpace = context.space_data
 
         if len(camera.data.background_images) == 0:
             self.report({'ERROR'}, "No backround images of clips found.")
@@ -1923,7 +1923,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
         #
         # gather lines for each vanishing point
         #
-        activeSpace = context.area.spaces.active
+        activeSpace = context.space_data
 
         if not activeSpace.clip:
             self.report({'ERROR'}, "There is no active movie clip.")
