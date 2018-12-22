@@ -1890,7 +1890,7 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
             vp1AxisIndex = ['X', 'Y', 'Z'].index(props.vp1_axis)
 
             if upAxisIndex == vp1AxisIndex:
-                self.report({'ERROR'}, "The up axis cannot be parallel to the axis of the line set.")
+                self.report({'ERROR'}, "The up axis cannot be parallel to the axis pointing to the vanishing point.")
                 return {'CANCELLED'}
             vp2AxisIndex = (set([0, 1, 2]) ^ set([upAxisIndex, vp1AxisIndex])).pop()
             vpAxisIndices = [vp1AxisIndex, vp2AxisIndex]
@@ -1901,7 +1901,7 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
             setBgImg = props.set_cambg
 
             if vpAxisIndices[0] == vpAxisIndices[1]:
-                self.report({'ERROR'}, "The two line sets cannot be parallel to the same axis.")
+                self.report({'ERROR'}, "The two different vanishing points cannot be computed from the same axis.")
                 return {'CANCELLED'}
 
         #
@@ -2084,7 +2084,7 @@ class BLAM_OT_setup_grease_pencil_layers(bpy.types.Operator):
     bl_description = "Setup Grease Pencil layers according to parameters of the camera calibration tool"
     bl_options = {'REGISTER', 'UNDO'}
 
-    axis_colors = {'X': (1, 0, 0), 'Y': (0, 1, 0), 'Z': (0, 0, 1)}
+    axisColors = {'X': (1, 0, 0), 'Y': (0, 1, 0), 'Z': (0, 0, 1)}
 
     def axisName(self, axis):
         return (axis, "{} Axis".format(axis))
@@ -2097,21 +2097,21 @@ class BLAM_OT_setup_grease_pencil_layers(bpy.types.Operator):
             self.report({'ERROR'}, "There is no active movie clip.")
             return {'CANCELLED'}
 
-        axes = [self.axisName(props.vp1_axis)]
+        axisNames = [self.axisName(props.vp1_axis)]
 
         if props.calibration_type == 'ONE_VP' and props.use_horizon_segment:
-            for axis, color in self.axis_colors.items():
-                if axis != props.vp1_axis and axis != props.up_axis:
-                    axes.append((axis, "Horizon"))
-                    break
+            if props.vp1_axis == props.up_axis:
+                self.report({'ERROR'}, "The up axis cannot be parallel to the axis pointing to the vanishing point.")
+                return {'CANCELLED'}
+            axis = (set(['X', 'Y', 'Z']) - set([props.vp1_axis, props.up_axis])).pop()
+            axisNames.append((axis, "Horizon"))
         elif props.calibration_type == 'TWO_VP':
-            axes.append(self.axisName(props.vp2_axis))
-
-            if props.optical_center_type == 'COMPUTE':
-                for axis, color in self.axis_colors.items():
-                    if axis != props.vp1_axis and axis != props.vp2_axis:
-                        axes.append(self.axisName(axis))
-                        break
+            if props.vp1_axis == props.vp2_axis:
+                self.report({'ERROR'}, "The two different vanishing points cannot be computed from the same axis.")
+                return {'CANCELLED'}
+            axisNames.append(self.axisName(props.vp2_axis))
+            axis = (set(['X', 'Y', 'Z']) - set([props.vp1_axis, props.vp2_axis])).pop()
+            axisNames.append(self.axisName(axis))
 
         activeSpace.grease_pencil_source = 'CLIP'
         context.scene.tool_settings.gpencil_stroke_placement_view2d = 'CURSOR'
@@ -2125,9 +2125,9 @@ class BLAM_OT_setup_grease_pencil_layers(bpy.types.Operator):
         for layer in gpl:
             gpl.remove(layer)
 
-        for axis, name in axes:
+        for axis, name in axisNames:
             layer = gpl.new(name, set_active=True)
-            layer.tint_color = self.axis_colors[axis]
+            layer.tint_color = self.axisColors[axis]
             layer.tint_factor = 1.0
 
         return {'FINISHED'}
