@@ -663,15 +663,15 @@ class PhotoModelingToolsPanel(bpy.types.Panel):
 
         row = layout.row()
         box = row.box()
-        box.operator("blam.reconstruct_mesh_with_rects")
+        box.operator("blam.reconstruct_mesh_with_rects", icon='MESH_CUBE')
         box.prop(props, "separate_faces")
         row = layout.row()
         box = row.box()
 
-        box.operator("blam.project_bg_onto_mesh")
+        box.operator("blam.project_bg_onto_mesh", icon='MOD_UVPROJECT')
         box.prop(props, "projection_method")
         # self.layout.operator("blam.make_edge_x")
-        layout.operator("blam.set_los_scale_pivot")
+        layout.operator("blam.set_los_scale_pivot", icon='CURSOR')
 
 
 class SetLineOfSightScalePivot(bpy.types.Operator):
@@ -1627,9 +1627,9 @@ class CameraCalibrationPanel(bpy.types.Panel):
             row.prop(props, "optical_center_type")
         # TODO layout.prop(props, "vp1_only")
 
-        layout.operator("blam.setup_grease_pencil_layers")
+        layout.operator("blam.setup_grease_pencil_layers", icon='GREASEPENCIL')
         layout.prop(props, "set_cambg")
-        layout.operator("blam.calibrate_active_camera")
+        layout.operator("blam.calibrate_active_camera", icon='CAMERA_DATA')
 
 
 class CameraCalibrationOperator(bpy.types.Operator):
