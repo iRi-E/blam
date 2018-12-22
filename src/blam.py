@@ -942,9 +942,9 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         # if we made it here, we have a camera, a mesh and an image.
         self.prepareMesh(mesh)
         method = props.projection_method
-        if method == 'hq':
+        if method == 'HQ':
             self.performHighQualityProjection(context, camera, mesh, img)
-        elif method == 'simple':
+        elif method == 'SIMPLE':
             self.performSimpleProjection(context, camera, mesh, img)
         else:
             self.report({'ERROR'}, "Unknown projection method")
@@ -1606,19 +1606,19 @@ class CameraCalibrationPanel(bpy.types.Panel):
         layout.prop(props, "calibration_type")
         row = layout.row()
         box = row.box()
-        box.label(text="Line set 1 (first grease pencil layer)")
-        box.prop(props, "vp1_axis")
+        box.label(text="1st Vanishing Point")
+        box.prop(props, "vp1_axis", text="Parallel to")
 
         row = layout.row()
         box = row.box()
-        singleVp = props.calibration_type == 'one_vp'
+        singleVp = props.calibration_type == 'ONE_VP'
         if singleVp:
-            box.label(text="Horizon line (second grease pencil layer)")
+            box.label(text="Horizon line")
             box.prop(props, "use_horizon_segment")
             # box.label(text="An optional single line segment parallel to the horizon.")
         else:
-            box.label(text="Line set 2 (second grease pencil layer)")
-            box.prop(props, "vp2_axis")
+            box.label(text="2nd Vanishing Point")
+            box.prop(props, "vp2_axis", text="Parallel to")
         row = layout.row()
         # row.enabled = singleVp
         if singleVp:
@@ -1867,7 +1867,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
         '''
         props = context.scene.blam
 
-        singleVp = props.calibration_type == 'one_vp'
+        singleVp = props.calibration_type == 'ONE_VP'
         useHorizonSegment = props.use_horizon_segment
         setBgImg = props.set_cambg
 
@@ -1883,8 +1883,8 @@ class CameraCalibrationOperator(bpy.types.Operator):
         # check settings
         #
         if singleVp:
-            upAxisIndex = ['x', 'y', 'z'].index(props.up_axis)
-            vp1AxisIndex = ['x', 'y', 'z'].index(props.vp1_axis)
+            upAxisIndex = ['X', 'Y', 'Z'].index(props.up_axis)
+            vp1AxisIndex = ['X', 'Y', 'Z'].index(props.vp1_axis)
 
             if upAxisIndex == vp1AxisIndex:
                 self.report({'ERROR'}, "The up axis cannot be parallel to the axis of the line set.")
@@ -1892,8 +1892,8 @@ class CameraCalibrationOperator(bpy.types.Operator):
             vp2AxisIndex = (set([0, 1, 2]) ^ set([upAxisIndex, vp1AxisIndex])).pop()
             vpAxisIndices = [vp1AxisIndex, vp2AxisIndex]
         else:
-            vp1AxisIndex = ['x', 'y', 'z'].index(props.vp1_axis)
-            vp2AxisIndex = ['x', 'y', 'z'].index(props.vp2_axis)
+            vp1AxisIndex = ['X', 'Y', 'Z'].index(props.vp1_axis)
+            vp2AxisIndex = ['X', 'Y', 'Z'].index(props.vp2_axis)
             vpAxisIndices = [vp1AxisIndex, vp2AxisIndex]
             setBgImg = props.set_cambg
 
@@ -1983,7 +1983,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
             #
             # calibration using two vanishing points
             #
-            if props.optical_center_type == 'camdata':
+            if props.optical_center_type == 'CAMDATA':
                 # get the principal point location from camera data
                 P = [x for x in activeSpace.clip.tracking.camera.principal]
                 # print("camera data optical center", P[:])
@@ -1991,7 +1991,7 @@ class CameraCalibrationOperator(bpy.types.Operator):
                 P[1] /= imageHeight
                 # print("normlz. optical center", P[:])
                 P = self.relImgCoords2ImgPlaneCoords(P, imageWidth, imageHeight, sf)
-            elif props.optical_center_type == 'compute':
+            elif props.optical_center_type == 'COMPUTE':
                 if len(vpLineSets) < 3:
                     self.report({'ERROR'}, "A third grease pencil layer is needed to compute the optical center.")
                     return {'CANCELLED'}
@@ -2081,10 +2081,10 @@ class SetupGreasePencilLayers(bpy.types.Operator):
     bl_description = "Setup Grease Pencil layers according to parameters of the camera calibration tool"
     bl_options = {'REGISTER', 'UNDO'}
 
-    axis_colors = {'x': (1, 0, 0), 'y': (0, 1, 0), 'z': (0, 0, 1)}
+    axis_colors = {'X': (1, 0, 0), 'Y': (0, 1, 0), 'Z': (0, 0, 1)}
 
     def axisName(self, axis):
-        return (axis, "{} axis".format(axis))
+        return (axis, "{} Axis".format(axis))
 
     def execute(self, context):
         props = context.scene.blam
@@ -2096,15 +2096,15 @@ class SetupGreasePencilLayers(bpy.types.Operator):
 
         axes = [self.axisName(props.vp1_axis)]
 
-        if props.calibration_type == 'one_vp' and props.use_horizon_segment:
+        if props.calibration_type == 'ONE_VP' and props.use_horizon_segment:
             for axis, color in self.axis_colors.items():
                 if axis != props.vp1_axis and axis != props.up_axis:
                     axes.append((axis, "Horizon"))
                     break
-        elif props.calibration_type == 'two_vp':
+        elif props.calibration_type == 'TWO_VP':
             axes.append(self.axisName(props.vp2_axis))
 
-            if props.optical_center_type == 'compute':
+            if props.optical_center_type == 'COMPUTE':
                 for axis, color in self.axis_colors.items():
                     if axis != props.vp1_axis and axis != props.vp2_axis:
                         axes.append(self.axisName(axis))
@@ -2136,41 +2136,47 @@ class BLAMProps(bpy.types.PropertyGroup):
     calibration_type = bpy.props.EnumProperty(
         name="Method",
         description="The type of calibration method to use",
-        items=[('one_vp', "one vanishing point",
+        items=[('ONE_VP', "One Vanishing Point",
                 "Estimates the camera orientation using a known focal length, "
                 "a single vanishing point and an optional horizon tilt angle"),
-               ('two_vp', "two vanishing points",
+               ('TWO_VP', "Two Vanishing Points",
                 "Estimates the camera focal length and orientation from two vanishing points")],
-        default=('two_vp'))
+        default=('TWO_VP'))
 
     vp1_axis = bpy.props.EnumProperty(
-        name="Parallel to the",
-        description="The axis to which the line segments from the first layer are parallel",
-        items=[('x', "x axis", "xd"), ('y', "y axis", "yd"), ('z', "z axis", "zd")],
-        default=('x'))
+        name="Axis 1",
+        description="The axis to which the line segments from the first grease pencil layer are parallel in 3D space",
+        items=[('X', "X Axis", "Consider line segments in 1st grease pencil layer are parallel to X axis"),
+               ('Y', "Y Axis", "Consider line segments in 1st grease pencil layer are parallel to Y axis"),
+               ('Z', "Z Axis", "Consider line segments in 1st grease pencil layer are parallel to Z axis")],
+        default=('X'))
 
     vp2_axis = bpy.props.EnumProperty(
-        name="Parallel to the",
-        description="The axis to which the line segments from the second layer are parallel",
-        items=[('x', "x axis", "xd"), ('y', "y axis", "yd"), ('z', "z axis", "zd")],
-        default=('y'))
+        name="Axis 2",
+        description="The axis to which the line segments from the second grease pencil layer are parallel in 3D space",
+        items=[('X', "X Axis", "Consider line segments in 2nd grease pencil layer are parallel to X axis"),
+               ('Y', "Y Axis", "Consider line segments in 2nd grease pencil layer are parallel to Y axis"),
+               ('Z', "Z Axis", "Consider line segments in 2nd grease pencil layer are parallel to Z axis")],
+        default=('Y'))
 
     up_axis = bpy.props.EnumProperty(
-        name="Up axis",
+        name="Up Axis",
         description="The up axis for single vanishing point calibration",
-        items=[('x', "x axis", "xd"), ('y', "y axis", "yd"), ('z', "z axis", "zd")],
-        default=('z'))
+        items=[('X', "X Axis", "Use X axis as up axis"),
+               ('Y', "Y Axis", "Use Y axis as up axis"),
+               ('Z', "Z Axis", "Use Z axis as up axis")],
+        default=('Z'))
 
     optical_center_type = bpy.props.EnumProperty(
-        name="Optical center",
+        name="Optical Center",
         description="How the optical center is computed for calibration using two vanishing points",
-        items=[('mid', "Image midpoint",
+        items=[('MID', "Image Midpoint",
                 "Assume the optical center coincides with the image midpoint (reasonable in most cases)"),
-               ('camdata', "From camera data",
+               ('CAMDATA', "From Camera Data",
                 "Get a known optical center from the current camera data"),
-               ('compute', "From 3rd vanishing point",
+               ('COMPUTE', "From 3rd Vanishing Point",
                 "Computes the optical center using a third vanishing point from grease pencil layer 3")],
-        default=('mid'))
+        default=('MID'))
 
     # vp1_only = bpy.props.BoolProperty(
     #     name="Only use first line set",
@@ -2178,7 +2184,7 @@ class BLAMProps(bpy.types.PropertyGroup):
     #     default=False)
 
     set_cambg = bpy.props.BoolProperty(
-        name="Set background image",
+        name="Set Background Image",
         description="Automatically set the current movie clip as the camera background image "
                     "when performing camera calibration (works only when a 3D view-port is visible)",
         default=True)
@@ -2192,18 +2198,18 @@ class BLAMProps(bpy.types.PropertyGroup):
     # 3D reconstruction stuff
 
     separate_faces = bpy.props.BoolProperty(
-        name="Separate faces",
+        name="Separate Faces",
         description="Do not join the faces in the reconstructed mesh. Useful for finding problematic faces",
         default=False)
 
     projection_method = bpy.props.EnumProperty(
         name="Method",
         description="The method to use to project the image onto the mesh",
-        items=[('simple', "simple",
+        items=[('SIMPLE', "Simple",
                 "Uses UV coordinates projected from the camera view. May give warping on large faces"),
-               ('hq', "high quality",
+               ('HQ', "High Quality",
                 "Uses a UV Project modifier combined with a simple subdivision modifier")],
-        default=('hq'))
+        default=('HQ'))
 
 
 classes = (
