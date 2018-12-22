@@ -2127,6 +2127,7 @@ class SetupGreasePencilLayers(bpy.types.Operator):
                         break
 
         activeSpace.grease_pencil_source = 'CLIP'
+        context.scene.tool_settings.annotation_stroke_placement_view2d = 'CURSOR'
         activeSpace.show_annotation = True
 
         if not activeSpace.clip.grease_pencil:
