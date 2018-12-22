@@ -25,7 +25,7 @@ bl_info = {
     'name': 'BLAM - The Blender camera calibration toolkit',
     'author': 'Per Gantelius',
     'version': (0, 0, 6),
-    'blender': (2, 6, 2),
+    'blender': (2, 63, 0),
     'location': 'Move Clip Editor > Tools > Static Camera Calibration and 3D View > Tool Shelf > Photo Modeling Tools',
     'description': 'Reconstruct 3D geometry and estimate camera orientation and focal length based on photographs',
     'tracker_url': 'https://github.com/stuffmatic/blam/issues',
@@ -513,16 +513,6 @@ def solveCubic(a, b, c, d):
     return x1, x2, x3
 
 
-# helper function that returns the faces of a mesh. in bmesh builds,
-# this is a list of polygons, and in pre-bmesh builds this is a list
-# of triangles and quads
-def getMeshFaces(meshObject):
-    try:
-        return meshObject.data.faces
-    except AttributeError:
-        return meshObject.data.polygons
-
-
 #
 # PROJECTOR CALIBRATION STUFF
 #
@@ -791,26 +781,14 @@ class ProjectBackgroundImageOntoMeshOperator(bpy.types.Operator):
         bpy.ops.object.mode_set(mode='OBJECT')
 
         # set uvs to match the vertex x and y components in NDC
-        isBmesh = not hasattr(mesh.data, "faces")
-
-        if isBmesh:
-            loops = mesh.data.loops
-            uvLoops = mesh.data.uv_layers[0].data
-            for loop, uvLoop in zip(loops, uvLoops):
-                vIdx = loop.vertex_index
-                print("loop", loop, "vertex", loop.vertex_index, "uvLoop", uvLoop)
-                ndcVert = ndcVerts[vIdx]
-                uvLoop.uv[0] = 0.5 * (ndcVert[0] + 1.0)
-                uvLoop.uv[1] = 0.5 * (ndcVert[1] + 1.0)
-
-        else:
-            assert(len(getMeshFaces(mesh)) == len(mesh.data.uv_textures[0].data))
-            for meshFace, uvFace in zip(getMeshFaces(mesh), mesh.data.uv_textures[0].data):
-                faceVerts = [ndcVerts[i] for i in meshFace.vertices]
-
-                for i in range(len(uvFace.uv)):
-                    uvFace.uv[i][0] = 0.5 * (faceVerts[i][0] + 1.0)
-                    uvFace.uv[i][1] = 0.5 * (faceVerts[i][1] + 1.0)
+        loops = mesh.data.loops
+        uvLoops = mesh.data.uv_layers[0].data
+        for loop, uvLoop in zip(loops, uvLoops):
+            vIdx = loop.vertex_index
+            print("loop", loop, "vertex", loop.vertex_index, "uvLoop", uvLoop)
+            ndcVert = ndcVerts[vIdx]
+            uvLoop.uv[0] = 0.5 * (ndcVert[0] + 1.0)
+            uvLoop.uv[1] = 0.5 * (ndcVert[1] + 1.0)
 
     def performSimpleProjection(self, context, camera, mesh, img):
         if len(mesh.material_slots) == 0:
@@ -1202,7 +1180,7 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
             # gather all faces containing the current edge
             facesContainingEdge = []
 
-            for f in getMeshFaces(inputMesh):
+            for f in inputMesh.data.polygons:
                 matchFound = False
                 fv = f.vertices
                 if len(fv) != 4:
@@ -1244,9 +1222,9 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         # where m is the number of faces (the depth factor for the first
         # face is set to 1)
         # k1 = 1
-        # firstFace = getMeshFaces(inputMesh)[0]
-        numFaces = len(getMeshFaces(inputMesh))
-        faces = [f for f in getMeshFaces(inputMesh)]
+        # firstFace = inputMesh.data.polygons[0]
+        numFaces = len(inputMesh.data.polygons)
+        faces = [f for f in inputMesh.data.polygons]
         matrixRows = []
         rhRows = []  # rows of the right hand side vector
         vertsToMergeByOriginalIdx = {}
@@ -1514,7 +1492,7 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
                     visitedFaces.append(n)
                     visitNeighbors(faces, n, visitedFaces)
 
-        faces = getMeshFaces(mesh)
+        faces = mesh.data.polygons
         if len(faces) == 1:
             return True
         visitedFaces = []
@@ -1523,7 +1501,7 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         return len(visitedFaces) == len(faces)
 
     def areAllMeshFacesQuads(self, mesh):
-        for f in getMeshFaces(mesh):
+        for f in mesh.data.polygons:
             if len(f.vertices) != 4:
                 return False
         return True
@@ -1549,7 +1527,7 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         if 'Mesh' not in str(type(self.mesh.data)):
             self.report({'ERROR'}, "The active object is not a mesh")
             return{'CANCELLED'}
-        if len(getMeshFaces(self.mesh)) == 0:
+        if len(self.mesh.data.polygons) == 0:
             self.report({'ERROR'}, "The mesh does not have any faces.")
             return{'CANCELLED'}
         if not self.areAllMeshFacesQuads(self.mesh):
@@ -1568,7 +1546,7 @@ class Reconstruct3DMeshOperator(bpy.types.Operator):
         computedCoordsByFace = {}
         quads = []
         # loop over all faces
-        for f in getMeshFaces(self.mesh):
+        for f in self.mesh.data.polygons:
             # if this is a quad face, process it
             if len(f.vertices) == 4:
                 assert(f not in computedCoordsByFace.keys())
