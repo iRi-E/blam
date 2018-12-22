@@ -1908,7 +1908,7 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
             if upAxisIndex == vp1AxisIndex:
                 self.report({'ERROR'}, "The up axis cannot be parallel to the axis pointing to the vanishing point.")
                 return {'CANCELLED'}
-            vp2AxisIndex = (set([0, 1, 2]) ^ set([upAxisIndex, vp1AxisIndex])).pop()
+            vp2AxisIndex = (set([0, 1, 2]) - set([upAxisIndex, vp1AxisIndex])).pop()
             vpAxisIndices = [vp1AxisIndex, vp2AxisIndex]
         else:
             vp1AxisIndex = ['X', 'Y', 'Z'].index(props.vp1_axis)
