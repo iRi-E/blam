@@ -26,7 +26,7 @@ bl_info = {
     'author': 'Per Gantelius',
     'version': (0, 0, 6),
     'blender': (2, 6, 2),
-    'location': 'Move Clip Editor > Tool Shelf > Static Camera Calibration and 3D View > Tools > Photo Modeling Tools',
+    'location': 'Move Clip Editor > Tools > Static Camera Calibration and 3D View > Tool Shelf > Photo Modeling Tools',
     'description': 'Reconstruct 3D geometry and estimate camera orientation and focal length based on photographs',
     'tracker_url': 'https://github.com/stuffmatic/blam/issues',
     'wiki_url': 'https://github.com/stuffmatic/blam/wiki',
