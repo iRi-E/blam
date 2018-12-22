@@ -665,11 +665,12 @@ class PhotoModelingToolsPanel(bpy.types.Panel):
         box = row.box()
         box.operator("blam.reconstruct_mesh_with_rects", icon='MESH_CUBE')
         box.prop(props, "separate_faces")
+
         row = layout.row()
         box = row.box()
-
         box.operator("blam.project_bg_onto_mesh", icon='MOD_UVPROJECT')
         box.prop(props, "projection_method")
+
         # self.layout.operator("blam.make_edge_x")
         layout.operator("blam.set_los_scale_pivot", icon='CURSOR')
 
@@ -1604,6 +1605,7 @@ class CameraCalibrationPanel(bpy.types.Panel):
         props = context.scene.blam
 
         layout.prop(props, "calibration_type")
+
         row = layout.row()
         box = row.box()
         box.label(text="1st Vanishing Point")
@@ -1619,6 +1621,7 @@ class CameraCalibrationPanel(bpy.types.Panel):
         else:
             box.label(text="2nd Vanishing Point")
             box.prop(props, "vp2_axis", text="Parallel to")
+
         row = layout.row()
         # row.enabled = singleVp
         if singleVp:
