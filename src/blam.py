@@ -673,14 +673,14 @@ class BLAM_PT_photo_modeling_tools(bpy.types.Panel):
         box.prop(props, "projection_method")
 
         # self.layout.operator("blam.make_edge_x")
-        layout.operator("blam.set_los_scale_pivot", icon='PIVOT_CURSOR')
+        layout.operator("blam.set_pivot_to_camera", icon='PIVOT_CURSOR')
 
 
-class BLAM_OT_set_los_scale_pivot(bpy.types.Operator):
-    bl_idname = "blam.set_los_scale_pivot"
-    bl_label = "Set Line of Sight Scale Pivot"
-    bl_description = "Set the pivot to the camera origin, " \
-                     "which makes scaling equivalent to translation along the line of sight"
+class BLAM_OT_set_pivot_to_camera(bpy.types.Operator):
+    bl_idname = "blam.set_pivot_to_camera"
+    bl_label = "Set Pivot to Camera Origin"
+    bl_description = "Set the pivot to the origin of the active camera so that " \
+                     "the screen position of each vertex is invariant to scaling in 3D space"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -2238,7 +2238,7 @@ classes = (
     # BLAM_OT_set_calib_window_to_clip,
     # BLAM_OT_set_calib_window_to_view3d,
     BLAM_PT_photo_modeling_tools,
-    BLAM_OT_set_los_scale_pivot,
+    BLAM_OT_set_pivot_to_camera,
     BLAM_OT_project_bg_onto_mesh,
     BLAM_OT_reconstruct_mesh_with_rects,
     BLAM_PT_camera_calibration,
