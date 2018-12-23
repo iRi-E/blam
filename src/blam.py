@@ -2227,7 +2227,7 @@ class BLAMProps(bpy.types.PropertyGroup):
         items=[('SIMPLE', "Simple",
                 "Uses UV coordinates projected from the camera view. May give warping on large faces"),
                ('HQ', "High Quality",
-                "Uses a UV Project modifier combined with a simple subdivision modifier")],
+                "Uses a UV Project modifier combined with a simple subdivision surface modifier")],
         default=('HQ'))
 
 
