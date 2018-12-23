@@ -657,6 +657,7 @@ class BLAM_PT_photo_modeling_tools(bpy.types.Panel):
     bl_label = "Photo Modeling Tools"
     bl_space_type = "VIEW_3D"
     bl_region_type = "TOOLS"
+    bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
         layout = self.layout
@@ -670,7 +671,7 @@ class BLAM_PT_photo_modeling_tools(bpy.types.Panel):
         row = layout.row()
         box = row.box()
         box.operator("blam.project_bg_onto_mesh", icon='MOD_UVPROJECT')
-        box.prop(props, "projection_method")
+        box.prop(props, "projection_method", text="")
 
         # self.layout.operator("blam.make_edge_x")
         layout.operator("blam.set_pivot_to_camera", icon='PIVOT_CURSOR')
