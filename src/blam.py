@@ -2127,8 +2127,9 @@ class BLAM_OT_setup_grease_pencil_layers(bpy.types.Operator):
                 self.report({'ERROR'}, "The two different vanishing points cannot be computed from the same axis.")
                 return {'CANCELLED'}
             axisNames.append(self.axisName(props.vp2_axis))
-            axis = (set(['X', 'Y', 'Z']) - set([props.vp1_axis, props.vp2_axis])).pop()
-            axisNames.append(self.axisName(axis))
+            if props.optical_center_type == 'COMPUTE':
+                axis = (set(['X', 'Y', 'Z']) - set([props.vp1_axis, props.vp2_axis])).pop()
+                axisNames.append(self.axisName(axis))
 
         activeSpace.grease_pencil_source = 'CLIP'
         context.scene.tool_settings.annotation_stroke_placement_view2d = 'CURSOR'
