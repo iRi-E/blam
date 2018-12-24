@@ -1773,19 +1773,27 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         # line up the axes as specified in the ui
         x180Rot = mathutils.Euler((math.radians(180.0), 0, 0), 'XYZ').to_matrix().to_4x4()
         z180Rot = mathutils.Euler((0, 0, math.radians(180.0)), 'XYZ').to_matrix().to_4x4()
-        z90Rot = mathutils.Euler((0, 0, math.radians(90.0)), 'XYZ').to_matrix().to_4x4()
         zn90Rot = mathutils.Euler((0, 0, math.radians(-90.0)), 'XYZ').to_matrix().to_4x4()
-        yn90Rot = mathutils.Euler((0, math.radians(-90.0), 0), 'XYZ').to_matrix().to_4x4()
         xn90Rot = mathutils.Euler((math.radians(-90.0), 0, 0), 'XYZ').to_matrix().to_4x4()
+        y90Rot = mathutils.Euler((0, math.radians(90.0), 0), 'XYZ').to_matrix().to_4x4()
 
         M = x180Rot @ M @ z180Rot
+
+        # vp1 vp2 up
+        # ----------
+        # -x, +y, +z  rules to determine the directions of the axes:
+        # +y, +x, +z   * up-axis always should be positive
+        # -x, -z, +y   * if y axis is not up-axis, it should be positive
+        # -z, +x, +y   * if y axis is up-axis, z axis shold be negative
+        # +y, -z, +x
+        # +z, +y, +x
 
         if ax1 == 0 and ax2 == 1:
             # print("x, y")
             pass
         elif ax1 == 1 and ax2 == 0:
             # print("y, x")
-            M = z90Rot @ M
+            M = zn90Rot @ M
         elif ax1 == 0 and ax2 == 2:
             # print("x, z")
             M = xn90Rot @ M
@@ -1794,10 +1802,10 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
             M = xn90Rot @ zn90Rot @ M
         elif ax1 == 1 and ax2 == 2:
             # print("y, z")
-            M = yn90Rot @ z90Rot @ M
+            M = y90Rot @ zn90Rot @ M
         elif ax1 == 2 and ax2 == 1:
             # print("z, y")
-            M = yn90Rot @ M
+            M = y90Rot @ M
 
         return M
 
@@ -1999,6 +2007,11 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
             # print("fAbs", fAbs, "f rel", f)
             Fu = self.relImgCoords2ImgPlaneCoords(vp1, imageWidth, imageHeight, sf)
             Fv = self.computeSecondVanishingPoint(Fu, f, P, horizDir)
+
+            # order vanishing points along the image x axis
+            if Fv[0] < Fu[0]:
+                Fu, Fv = Fv, Fu
+                vpAxisIndices.reverse()
         else:
             #
             # calibration using two vanishing points
