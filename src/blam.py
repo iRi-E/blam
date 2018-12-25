@@ -25,7 +25,7 @@ bl_info = {
     'name': 'BLAM - The Blender camera calibration toolkit',
     'author': 'Per Gantelius',
     'version': (0, 0, 6),
-    'blender': (2, 63, 0),
+    'blender': (2, 78, 0),
     'location': 'Move Clip Editor > Tools > Static Camera Calibration and 3D View > Tool Shelf > Photo Modeling Tools',
     'description': 'Reconstruct 3D geometry and estimate camera orientation and focal length based on photographs',
     'tracker_url': 'https://github.com/stuffmatic/blam/issues',
