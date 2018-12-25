@@ -37,23 +37,6 @@ bl_info = {
 
 
 #
-# Generic math stuff
-#
-
-def normalize(vec):
-    norm = length(vec)
-    return [x / norm for x in vec]
-
-
-def length(vec):
-    return math.sqrt(sum([x * x for x in vec]))
-
-
-def dot(x, y):
-    return sum([xi * yi for xi, yi in zip(x, y)])
-
-
-#
 # PROJECTOR CALIBRATION STUFF
 #
 
@@ -521,9 +504,9 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def evalEq17(self, origin, p1, p2):
-        a = [x - y for x, y in zip(origin, p1)]
-        b = [x - y for x, y in zip(origin, p2)]
-        return dot(a, b)
+        a = origin - p1
+        b = origin - p2
+        return a.dot(b)
 
     def evalEq27(self, l):
         return self.C4 * l**4 + self.C3 * l**3 + self.C2 * l**2 + self.C1 * l + self.C0
@@ -545,7 +528,7 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
             # the vert in camera coordinates
             vec = self.camera.matrix_world.inverted() @ vec
 
-            ret.append(vec[0:3])
+            ret.append(vec.to_3d())
         return ret
 
     def computeCi(self, Qab, Qac, Qad, Qbc, Qbd, Qcd):
@@ -574,17 +557,17 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
         #
         # compute the coefficients Qij
         #
-        Qab = dot(qHatA, qHatB)
-        Qac = dot(qHatA, qHatC)
-        Qad = dot(qHatA, qHatD)
+        Qab = qHatA.dot(qHatB)
+        Qac = qHatA.dot(qHatC)
+        Qad = qHatA.dot(qHatD)
 
-        # Qba = dot(qHatB, qHatA)
-        Qbc = dot(qHatB, qHatC)
-        Qbd = dot(qHatB, qHatD)
+        # Qba = qHatB.dot(qHatA)
+        Qbc = qHatB.dot(qHatC)
+        Qbd = qHatB.dot(qHatD)
 
-        # Qca = dot(qHatC, qHatA)
-        # Qcb = dot(qHatC, qHatB)
-        Qcd = dot(qHatC, qHatD)
+        # Qca = qHatC.dot(qHatA)
+        # Qcb = qHatC.dot(qHatB)
+        Qcd = qHatC.dot(qHatD)
 
         # print("Qab", Qab, "Qac", Qac, "Qad", Qad)
         # print("Qba", Qba, "Qbc", Qbc, "Qbd", Qbd)
@@ -653,10 +636,10 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
             # print("lambdaC", numLambdaC, "/", denLambdaC)
 
             # compute vertex positions
-            pA = [x * self.lambdaA for x in qHatA]
-            pB = [x * self.lambdaB for x in qHatB]
-            pC = [x * self.lambdaC for x in qHatC]
-            pD = [x * self.lambdaD for x in qHatD]
+            pA = qHatA * self.lambdaA
+            pB = qHatB * self.lambdaB
+            pC = qHatC * self.lambdaC
+            pD = qHatD * self.lambdaD
 
             # compute the mean orthogonality error for the resulting quad
             meanError, maxError = self.getQuadError(pA, pB, pC, pD)
@@ -680,10 +663,10 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
         self.lambdaC = (Qad * lambdaD - lambdaD * lambdaD) / (Qac - Qcd * lambdaD)
         self.lambdaD = lambdaD
 
-        pA = [x * self.lambdaA for x in qHatA]
-        pB = [x * self.lambdaB for x in qHatB]
-        pC = [x * self.lambdaC for x in qHatC]
-        pD = [x * self.lambdaD for x in qHatD]
+        pA = qHatA * self.lambdaA
+        pB = qHatB * self.lambdaB
+        pC = qHatC * self.lambdaC
+        pD = qHatD * self.lambdaD
 
         meanError, maxError = self.getQuadError(pA, pB, pC, pD)
         # self.report({'INFO'}, "Error: " + str(meanError) + " (" + str(maxError) + ")")
@@ -1118,7 +1101,7 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
                 inputPointsCameraSpace = self.worldToCameraSpace(inputPointsLocalMeshSpace)
 
                 # compute normalized input vectors (eq 16)
-                qHats = [normalize(x) for x in inputPointsCameraSpace]
+                qHats = [x.normalized() for x in inputPointsCameraSpace]
 
                 # run the algorithm to create a quad with depth. coords in camera space
                 outputPointsCameraSpace = self.computeQuadDepthInformation(*qHats)
@@ -1220,8 +1203,8 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         # TODO 1: take principal point into account here
         # TODO 2: if the first vanishing point coincides with the image center,
         #        these lines won't work, but this case should be handled somehow.
-        k = -(Fu[0]**2 + Fu[1]**2 + f**2) / (Fu[0] * horizonDir[0] + Fu[1] * horizonDir[1])
-        Fv = [Fu[i] + k * horizonDir[i] for i in range(2)]
+        k = -(Fu.length_squared + f**2) / Fu.dot(horizonDir)
+        Fv = Fu + k * horizonDir
 
         return Fv
 
@@ -1235,16 +1218,16 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         '''
 
         # compute Puv, the orthogonal projection of P onto FuFv
-        dirFuFv = normalize([x - y for x, y in zip(Fu, Fv)])
-        FvP = [x - y for x, y in zip(P, Fv)]
-        proj = dot(dirFuFv, FvP)
-        Puv = [proj * x + y for x, y in zip(dirFuFv, Fv)]
+        dirFuFv = (Fu - Fv).normalized()
+        FvP = P - Fv
+        proj = dirFuFv.dot(FvP)
+        Puv = proj * dirFuFv + Fv
 
-        PPuv = length([x - y for x, y in zip(P, Puv)])
+        PPuv = (P - Puv).length
 
-        FvPuv = length([x - y for x, y in zip(Fv, Puv)])
-        FuPuv = length([x - y for x, y in zip(Fu, Puv)])
-        # FuFv = length([x - y for x, y in zip(Fu, Fv)])
+        FvPuv = (Fv - Puv).length
+        FuPuv = (Fu - Puv).length
+        # FuFv = (Fu - Fv).length
         # print("FuFv", FuFv, "FvPuv + FuPuv", FvPuv + FuPuv)
 
         fSq = FvPuv * FuPuv - PPuv * PPuv
@@ -1253,7 +1236,7 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         if fSq < 0:
             return None
         f = math.sqrt(fSq)
-        # print("dot 1:", dot(normalize(Fu + [f]), normalize(Fv + [f])))
+        # print("dot 1:", mathutils.Vector(list[Fu] + [f]).normalized().dot(mathutils.Vector(list[Fv] + [f]).normalized())
 
         return f
 
@@ -1271,16 +1254,16 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         Fv[0] -= P[0]
         Fv[1] -= P[1]
 
-        OFu = [Fu[0], Fu[1], f]
-        OFv = [Fv[0], Fv[1], f]
+        OFu = mathutils.Vector((Fu[0], Fu[1], f))
+        OFv = mathutils.Vector((Fv[0], Fv[1], f))
 
-        # print("matrix dot", dot(OFu, OFv))
+        # print("matrix dot", OFu.dot(OFv))
 
-        s1 = length(OFu)
-        upRc = normalize(OFu)
+        s1 = OFu.length
+        upRc = OFu.normalized()
 
-        s2 = length(OFv)
-        vpRc = normalize(OFv)
+        s2 = OFv.length
+        vpRc = OFv.normalized()
 
         wpRc = [upRc[1]*vpRc[2] - upRc[2]*vpRc[1], upRc[2]*vpRc[0] - upRc[0]*vpRc[2], upRc[0]*vpRc[1] - upRc[1]*vpRc[0]]
 
@@ -1367,7 +1350,7 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
             for s in strokes:
                 if len(s.points) == 2:
                     # this is a line segment. add it.
-                    line = [p.co[0:2] for p in s.points]
+                    line = [p.co.to_2d() for p in s.points]
                     lines.append(line)
 
             vpLineSets.insert(0, lines)
@@ -1384,9 +1367,9 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
             # a point on the line
             p = line[0]
             # a unit vector parallel to the line
-            dir = normalize([x - y for x, y in zip(line[1], line[0])])
+            dir = (line[1] - line[0]).normalized()
             # a unit vector perpendicular to the line
-            n = [dir[1], -dir[0]]
+            n = dir.orthogonal()
             matrixRows.append([n[0], n[1]])
             rhsRows.append([p[0]*n[0] + p[1]*n[1]])
 
@@ -1416,7 +1399,7 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         x = ((d-f)*b*b + (f-b)*d*d + (b-d)*f*f + a*b*(c-e) + c*d*(e-a) + e*f*(a-c)) / N
         y = ((e-c)*a*a + (a-e)*c*c + (c-a)*e*e + a*b*(f-d) + c*d*(b-f) + e*f*(d-b)) / N
 
-        return (x, y)
+        return mathutils.Vector((x, y))
 
     def imgAspect(self, imageWidth, imageHeight, sensor_fit):
         if sensor_fit == 'AUTO' and imageWidth >= imageHeight or sensor_fit == 'HORIZONTAL':
@@ -1426,7 +1409,7 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
 
     def relImgCoords2ImgPlaneCoords(self, pt, imageWidth, imageHeight, sensor_fit):
         sw, sh = self.imgAspect(imageWidth, imageHeight, sensor_fit)
-        return [sw * (pt[0] - 0.5), sh * (pt[1] - 0.5)]
+        return mathutils.Vector((sw * (pt[0] - 0.5), sh * (pt[1] - 0.5)))
 
     def execute(self, context):
         '''Executes the operator.
@@ -1527,12 +1510,11 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
             # calibration using a single vanishing point
             #
             # compute the horizon direction
-            horizDir = normalize([1.0, 0.0])  # flat horizon by default
+            horizDir = mathutils.Vector((1.0, 0.0)).normalized()  # flat horizon by default
             if useHorizonSegment:
                 ax, ay = self.imgAspect(imageWidth, imageHeight, sf)
-                xHorizDir = ax * (vpLineSets[1][0][1][0] - vpLineSets[1][0][0][0])
-                yHorizDir = ay * (vpLineSets[1][0][1][1] - vpLineSets[1][0][0][1])
-                horizDir = normalize([-xHorizDir, -yHorizDir])
+                xHorizDir, yHorizDir = vpLineSets[1][0][1] - vpLineSets[1][0][0]
+                horizDir = mathutils.Vector((-ax * xHorizDir, -ay * yHorizDir)).normalized()
             # print("horizDir", horizDir)
 
             # compute the vanishing point location
@@ -1557,7 +1539,7 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
             #
             if props.optical_center_type == 'CAMDATA':
                 # get the principal point location from camera data
-                P = [x for x in activeSpace.clip.tracking.camera.principal]
+                P = mathutils.Vector(activeSpace.clip.tracking.camera.principal)
                 # print("camera data optical center", P[:])
                 P[0] /= imageWidth
                 P[1] /= imageHeight
