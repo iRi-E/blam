@@ -18,8 +18,8 @@
 #
 
 import bpy
-import mathutils
-import math
+from mathutils import Vector, Matrix, Euler
+from math import tan, sqrt, radians
 import numpy as np
 
 bl_info = {
@@ -257,17 +257,17 @@ class BLAM_OT_project_bg_onto_mesh(bpy.types.Operator):
         if sf == 'AUTO' and rx < ry or sf == 'VERTICAL':
             fov = cam.data.angle
             aspect = rx / ry
-            h = math.tan(0.5 * fov)
+            h = tan(0.5 * fov)
             w = aspect * h
             sx /= aspect
         else:
             fov = cam.data.angle
             aspect = ry / rx
-            w = math.tan(0.5 * fov)
+            w = tan(0.5 * fov)
             h = aspect * w
             sy /= aspect
 
-        pm = mathutils.Matrix()
+        pm = Matrix()
         pm[0][0] = 1 / w
         pm[1][1] = 1 / h
         pm[2][2] = (near + far) / (near - far)
@@ -328,7 +328,7 @@ class BLAM_OT_project_bg_onto_mesh(bpy.types.Operator):
                                     ('ShaderNodeTexImage', (-408, 142))]:
             node = tree.nodes.new(bl_idname)
             nodes.append(node)
-            node.location = mathutils.Vector(location)
+            node.location = Vector(location)
 
         for to_node, to_socket, from_node, from_socket in [(0, 0, 1, 0), (1, 0, 2, 0)]:
             tree.links.new(nodes[to_node].inputs[to_socket], nodes[from_node].outputs[from_socket])
@@ -999,8 +999,8 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
             for i in range(3):
                 outMeanPos[i] = outMeanPos[i] + v.co[i] / len(outMesh.data.vertices)
 
-        inDistance = math.sqrt(sum([x * x for x in inMeanPos]))
-        outDistance = math.sqrt(sum([x * x for x in outMeanPos]))
+        inDistance = sqrt(sum([x * x for x in inMeanPos]))
+        outDistance = sqrt(sum([x * x for x in outMeanPos]))
 
         print(inMeanPos, outMeanPos, inDistance, outDistance)
 
@@ -1235,8 +1235,8 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         # print("fSq = ", fSq, " = ", FvPuv * FuPuv, " - ", PPuv * PPuv)
         if fSq < 0:
             return None
-        f = math.sqrt(fSq)
-        # print("dot 1:", mathutils.Vector(list[Fu] + [f]).normalized().dot(mathutils.Vector(list[Fv] + [f]).normalized())
+        f = sqrt(fSq)
+        # print("dot 1:", Vector(list[Fu] + [f]).normalized().dot(Vector(list[Fv] + [f]).normalized())
 
         return f
 
@@ -1254,8 +1254,8 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         Fv[0] -= P[0]
         Fv[1] -= P[1]
 
-        OFu = mathutils.Vector((Fu[0], Fu[1], f))
-        OFv = mathutils.Vector((Fv[0], Fv[1], f))
+        OFu = Vector((Fu[0], Fu[1], f))
+        OFv = Vector((Fv[0], Fv[1], f))
 
         # print("matrix dot", OFu.dot(OFv))
 
@@ -1267,7 +1267,7 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
 
         wpRc = [upRc[1]*vpRc[2] - upRc[2]*vpRc[1], upRc[2]*vpRc[0] - upRc[0]*vpRc[2], upRc[0]*vpRc[1] - upRc[1]*vpRc[0]]
 
-        M = mathutils.Matrix()
+        M = Matrix()
         M[0][0] = Fu[0] / s1
         M[0][1] = Fv[0] / s2
         M[0][2] = wpRc[0]
@@ -1293,11 +1293,11 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         :return: The final camera rotation matrix.
         '''
         # line up the axes as specified in the ui
-        x180Rot = mathutils.Euler((math.radians(180.0), 0, 0), 'XYZ').to_matrix().to_4x4()
-        z180Rot = mathutils.Euler((0, 0, math.radians(180.0)), 'XYZ').to_matrix().to_4x4()
-        zn90Rot = mathutils.Euler((0, 0, math.radians(-90.0)), 'XYZ').to_matrix().to_4x4()
-        xn90Rot = mathutils.Euler((math.radians(-90.0), 0, 0), 'XYZ').to_matrix().to_4x4()
-        y90Rot = mathutils.Euler((0, math.radians(90.0), 0), 'XYZ').to_matrix().to_4x4()
+        x180Rot = Euler((radians(180.0), 0, 0), 'XYZ').to_matrix().to_4x4()
+        z180Rot = Euler((0, 0, radians(180.0)), 'XYZ').to_matrix().to_4x4()
+        zn90Rot = Euler((0, 0, radians(-90.0)), 'XYZ').to_matrix().to_4x4()
+        xn90Rot = Euler((radians(-90.0), 0, 0), 'XYZ').to_matrix().to_4x4()
+        y90Rot = Euler((0, radians(90.0), 0), 'XYZ').to_matrix().to_4x4()
 
         M = x180Rot @ M @ z180Rot
 
@@ -1399,7 +1399,7 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         x = ((d-f)*b*b + (f-b)*d*d + (b-d)*f*f + a*b*(c-e) + c*d*(e-a) + e*f*(a-c)) / N
         y = ((e-c)*a*a + (a-e)*c*c + (c-a)*e*e + a*b*(f-d) + c*d*(b-f) + e*f*(d-b)) / N
 
-        return mathutils.Vector((x, y))
+        return Vector((x, y))
 
     def imgAspect(self, imageWidth, imageHeight, sensor_fit):
         if sensor_fit == 'AUTO' and imageWidth >= imageHeight or sensor_fit == 'HORIZONTAL':
@@ -1409,7 +1409,7 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
 
     def relImgCoords2ImgPlaneCoords(self, pt, imageWidth, imageHeight, sensor_fit):
         sw, sh = self.imgAspect(imageWidth, imageHeight, sensor_fit)
-        return mathutils.Vector((sw * (pt[0] - 0.5), sh * (pt[1] - 0.5)))
+        return Vector((sw * (pt[0] - 0.5), sh * (pt[1] - 0.5)))
 
     def execute(self, context):
         '''Executes the operator.
@@ -1510,11 +1510,11 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
             # calibration using a single vanishing point
             #
             # compute the horizon direction
-            horizDir = mathutils.Vector((1.0, 0.0)).normalized()  # flat horizon by default
+            horizDir = Vector((1.0, 0.0)).normalized()  # flat horizon by default
             if useHorizonSegment:
                 ax, ay = self.imgAspect(imageWidth, imageHeight, sf)
                 xHorizDir, yHorizDir = vpLineSets[1][0][1] - vpLineSets[1][0][0]
-                horizDir = mathutils.Vector((-ax * xHorizDir, -ay * yHorizDir)).normalized()
+                horizDir = Vector((-ax * xHorizDir, -ay * yHorizDir)).normalized()
             # print("horizDir", horizDir)
 
             # compute the vanishing point location
@@ -1539,7 +1539,7 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
             #
             if props.optical_center_type == 'CAMDATA':
                 # get the principal point location from camera data
-                P = mathutils.Vector(activeSpace.clip.tracking.camera.principal)
+                P = Vector(activeSpace.clip.tracking.camera.principal)
                 # print("camera data optical center", P[:])
                 P[0] /= imageWidth
                 P[1] /= imageHeight
