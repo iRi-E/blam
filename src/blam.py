@@ -207,27 +207,13 @@ class BLAM_OT_set_pivot_to_camera(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        bpy.ops.object.mode_set(mode='OBJECT')
-
-        selStates = []
-        objs = context.scene.objects
-        for obj in objs:
-            selStates.append(obj.select_get())
-            obj.select_set(False)
-
-        # select the camera
-        context.scene.camera.select_set(True)
-
-        # snap the cursor to the camer
-        bpy.ops.view3d.snap_cursor_to_selected()
+        # snap the cursor to the camera
+        context.scene.cursor_location = context.scene.camera.location
 
         # set the cursor to be the pivot
         tool_settings = context.scene.tool_settings
         print(tool_settings.transform_pivot_point)
         tool_settings.transform_pivot_point = 'CURSOR'
-
-        for obj, select in zip(objs, selStates):
-            obj.select_set(select)
 
         return {'FINISHED'}
 
