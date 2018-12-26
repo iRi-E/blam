@@ -535,11 +535,9 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
         quadFacePairsBySharedEdge = {}
 
         def indexOfFace(fcs, face):
-            i = 0
-            for f in fcs:
+            for i, f in enumerate(fcs):
                 if f == face:
                     return i
-                i = i + 1
             assert(False)  # could not find the face. should not end up here...
 
         # loop over all edges...
@@ -578,7 +576,7 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
             if edgeIsShared:
                 quadFacePairsBySharedEdge[e] = facesContainingEdge
             else:
-                unsharedEdgeCount = unsharedEdgeCount + 1
+                unsharedEdgeCount += 1
         numSharedEdges = len(quadFacePairsBySharedEdge.keys())
         numQuadFaces = len(quadFaces)
         # sanity check: the shared and unshared edges are disjoint and should add up to the total number of edges
@@ -621,11 +619,9 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
 
             def getQuadVertWithMeshIdx(quad, idx):
                 # print("idx", idx, "quad", quad)
-                i = 0
-                for p in quad:
+                for i, p in enumerate(quad):
                     if p.w == idx:
                         return p.to_3d(), i
-                    i = i + 1
                 assert(False)  # shouldnt end up here
 
             # vij is vertex j of the current edge in face i
@@ -769,7 +765,7 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
             for vert in quad:
                 verts.append(vert)
                 quadIdxs.append(idx)
-                idx = idx + 1
+                idx += 1
             faces.append(quadIdxs)
 
         #
