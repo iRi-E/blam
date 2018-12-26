@@ -271,9 +271,8 @@ class BLAM_OT_project_bg_onto_mesh(bpy.types.Operator):
             # the vert in clip coordinates
             vec = pm @ cam.matrix_world.inverted() @ vec
             # the vert in normalized device coordinates
-            w = vec[3]
-            vec = [x / w for x in vec]
-            returnVerts.append((vec[0] - sx, vec[1] - sy, vec[2]))
+            vec = vec.to_3d() / vec.w
+            returnVerts.append(vec - Vector((sx, sy, 0)))
 
         return returnVerts
 
@@ -297,9 +296,7 @@ class BLAM_OT_project_bg_onto_mesh(bpy.types.Operator):
         for loop, uvLoop in zip(loops, uvLoops):
             vIdx = loop.vertex_index
             print("loop", loop, "vertex", loop.vertex_index, "uvLoop", uvLoop)
-            ndcVert = ndcVerts[vIdx]
-            uvLoop.uv[0] = 0.5 * (ndcVert[0] + 1.0)
-            uvLoop.uv[1] = 0.5 * (ndcVert[1] + 1.0)
+            uvLoop.uv = 0.5 * (ndcVerts[vIdx].to_2d() + Vector((1.0, 1.0)))
 
     def setupNodeMaterial(self, material, image):
         material.use_nodes = True
@@ -365,7 +362,7 @@ class BLAM_OT_project_bg_onto_mesh(bpy.types.Operator):
         projector.name = mesh.name + '_' + self.projectorName
         projector.matrix_world = camera.matrix_world
         projector.select_set(False)
-        projector.scale = [0.1, 0.1, 0.1]
+        projector.scale = Vector((0.1, 0.1, 0.1))
         projector.data.lens = camera.data.lens
         projector.data.shift_x = camera.data.shift_x
         projector.data.shift_y = camera.data.shift_y
@@ -778,8 +775,8 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
                 # print("idx", idx, "quad", quad)
                 i = 0
                 for p in quad:
-                    if p[-1] == idx:
-                        return p, i
+                    if p.w == idx:
+                        return p.to_3d(), i
                     i = i + 1
                 assert(False)  # shouldnt end up here
 
@@ -792,12 +789,12 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
             v11, idx11 = getQuadVertWithMeshIdx(c1, e.vertices[1])
 
             # vert 0 depths
-            lambda00 = v00[2]
-            lambda10 = v10[2]
+            lambda00 = v00.z
+            lambda10 = v10.z
 
             # vert 1 depths
-            lambda01 = v01[2]
-            lambda11 = v11[2]
+            lambda01 = v01.z
+            lambda11 = v11.z
             # print(faces, f0, f1)
 
             assert(f0Idx >= 0 and f0Idx < numFaces)
@@ -881,7 +878,7 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
         if numQuadFaces > 2:
             Q, R = np.linalg.qr(np.array(matrixRows))
             b = Q.T @ np.array(rhRows)
-            factors = [1] + [f[0] for f in np.linalg.solve(R, b)]
+            factors = [1] + list(np.linalg.solve(R, b).T[0])
         elif numQuadFaces == 2:
             # TODO: special case to work around a bug
             # in the least squares solver that causes
@@ -900,9 +897,9 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
             idx = indexOfFace(faces, face)
             depthScale = factors[idx]
             for i in range(4):
-                vert = quad[i][:3]
+                vert = quad[i].to_3d()
                 # print("vert before", vert)
-                vert = [x * depthScale for x in vert]
+                vert *= depthScale
                 # print("vert after", vert)
                 quad[i] = vert
             # quads.append(quad)
@@ -945,14 +942,13 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
                 # merge at the mean position, which is guaranteed to
                 # lie on the line of sight, since all the vertices do
 
-                mean = [0, 0, 0]
+                mean = Vector((0, 0, 0))
                 for idx in vs:
                     # print("idx", idx)
                     # print("verts", verts)
                     currVert = verts[idx]
-
-                    for i in range(3):
-                        mean[i] = mean[i] + currVert[i] / len(vs)
+                    mean += currVert
+                mean /= len(vs)
 
                 for idx in vs:
                     verts[idx] = mean
@@ -971,22 +967,21 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
         return ob
 
     def getOutputMeshScale(self, camera, inMesh, outMesh):
-        inMeanPos = [0.0] * 3
+        inMeanPos = Vector((0.0, 0.0, 0.0))
         cmi = camera.matrix_world.inverted()
         mm = inMesh.matrix_world
         for v in inMesh.data.vertices:
+            vCamSpace = (cmi @ mm @ v.co.to_4d()).to_3d()
+            inMeanPos += vCamSpace
+        inMeanPos /= len(inMesh.data.vertices)
 
-            vCamSpace = cmi @ mm @ v.co.to_4d()
-            for i in range(3):
-                inMeanPos[i] = inMeanPos[i] + vCamSpace[i] / len(inMesh.data.vertices)
-
-        outMeanPos = [0.0] * 3
+        outMeanPos = Vector((0.0, 0.0, 0.0))
         for v in outMesh.data.vertices:
-            for i in range(3):
-                outMeanPos[i] = outMeanPos[i] + v.co[i] / len(outMesh.data.vertices)
+            outMeanPos += v.co
+        outMeanPos /= len(outMesh.data.vertices)
 
-        inDistance = sqrt(sum([x * x for x in inMeanPos]))
-        outDistance = sqrt(sum([x * x for x in outMeanPos]))
+        inDistance = inMeanPos.length
+        outDistance = outMeanPos.length
 
         print(inMeanPos, outMeanPos, inDistance, outDistance)
 
@@ -1096,8 +1091,8 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
                 # used later when constructing the output mesh.
                 # print("quad")
                 for i in range(4):
-                    outputPointsCameraSpace[i] = list(outputPointsCameraSpace[i][:])
-                    outputPointsCameraSpace[i].append(f.vertices[i])
+                    outputPointsCameraSpace[i].resize_4d()
+                    outputPointsCameraSpace[i].w = f.vertices[i]  # w is an index, not a coordinate
 
                 # remember which original mesh face corresponds to the computed quad
                 computedCoordsByFace[f] = outputPointsCameraSpace
@@ -1114,7 +1109,7 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
         # finally apply a uniform scale that matches the distance between
         # the camera and mean point of the two meshes
         uniformScale = self.getOutputMeshScale(self.camera, self.mesh, m)
-        m.scale = [uniformScale] * 3
+        m.scale = Vector((uniformScale,) * 3)
 
         return {'FINISHED'}
 
@@ -1234,39 +1229,19 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         :param f: the relative focal length.
         :return: The matrix Moc
         '''
-        Fu[0] -= P[0]
-        Fu[1] -= P[1]
+        Fu -= P
+        Fv -= P
 
-        Fv[0] -= P[0]
-        Fv[1] -= P[1]
-
-        OFu = Vector((Fu[0], Fu[1], f))
-        OFv = Vector((Fv[0], Fv[1], f))
+        OFu = Vector((Fu.x, Fu.y, f))
+        OFv = Vector((Fv.x, Fv.y, f))
 
         # print("matrix dot", OFu.dot(OFv))
 
-        s1 = OFu.length
         upRc = OFu.normalized()
-
-        s2 = OFv.length
         vpRc = OFv.normalized()
+        wpRc = upRc.cross(vpRc)
 
-        wpRc = [upRc[1]*vpRc[2] - upRc[2]*vpRc[1], upRc[2]*vpRc[0] - upRc[0]*vpRc[2], upRc[0]*vpRc[1] - upRc[1]*vpRc[0]]
-
-        M = Matrix()
-        M[0][0] = Fu[0] / s1
-        M[0][1] = Fv[0] / s2
-        M[0][2] = wpRc[0]
-
-        M[1][0] = Fu[1] / s1
-        M[1][1] = Fv[1] / s2
-        M[1][2] = wpRc[1]
-
-        M[2][0] = f / s1
-        M[2][1] = f / s2
-        M[2][2] = wpRc[2]
-
-        M.transpose()
+        M = Matrix((upRc, vpRc, wpRc)).to_4x4()
 
         return M
 
@@ -1356,12 +1331,12 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
             dir = (line[1] - line[0]).normalized()
             # a unit vector perpendicular to the line
             n = dir.orthogonal()
-            matrixRows.append([n[0], n[1]])
-            rhsRows.append([p[0]*n[0] + p[1]*n[1]])
+            matrixRows.append(n)
+            rhsRows.append([p.dot(n)])
 
         Q, R = np.linalg.qr(np.array(matrixRows))
         b = Q.T @ np.array(rhsRows)
-        vp = [f[0] for f in np.linalg.solve(R, b)]
+        vp = Vector(np.linalg.solve(R, b))
         return vp
 
     def computeTriangleOrthocenter(self, verts):
@@ -1374,12 +1349,9 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
 
         # print("A, B, C", A, B, C)
 
-        a = A[0]
-        b = A[1]
-        c = B[0]
-        d = B[1]
-        e = C[0]
-        f = C[1]
+        a, b = A
+        c, d = B
+        e, f = C
 
         N = b*c + d*e + f*a - c*f - b*e - a*d
         x = ((d-f)*b*b + (f-b)*d*d + (b-d)*f*f + a*b*(c-e) + c*d*(e-a) + e*f*(a-c)) / N
@@ -1489,7 +1461,7 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
 
         # principal point in image plane coordinates.
         # in the middle of the image by default
-        P = [0, 0]
+        P = Vector((0, 0))
 
         if singleVp:
             #
@@ -1516,7 +1488,7 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
             Fv = self.computeSecondVanishingPoint(Fu, f, P, horizDir)
 
             # order vanishing points along the image x axis
-            if Fv[0] < Fu[0]:
+            if Fv.x < Fu.x:
                 Fu, Fv = Fv, Fu
                 vpAxisIndices.reverse()
         else:
@@ -1527,8 +1499,8 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
                 # get the principal point location from camera data
                 P = Vector(activeSpace.clip.tracking.camera.principal)
                 # print("camera data optical center", P[:])
-                P[0] /= imageWidth
-                P[1] /= imageHeight
+                P.x /= imageWidth
+                P.y /= imageHeight
                 # print("normlz. optical center", P[:])
                 P = self.relImgCoords2ImgPlaneCoords(P, imageWidth, imageHeight, sf)
             elif props.optical_center_type == 'COMPUTE':
@@ -1546,19 +1518,17 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
 
             # compute the two vanishing points
             vps = [self.computeIntersectionPointForLineSegments(vpLineSets[i]) for i in range(2)]
+            Fu = self.relImgCoords2ImgPlaneCoords(vps[0], imageWidth, imageHeight, sf)
+            Fv = self.relImgCoords2ImgPlaneCoords(vps[1], imageWidth, imageHeight, sf)
 
             # order vanishing points along the image x axis
-            if vps[1][0] < vps[0][0]:
-                vps.reverse()
-                vpLineSets.reverse()
+            if Fv.x < Fu.x:
+                Fu, Fv = Fv, Fu
                 vpAxisIndices.reverse()
 
             #
             # compute focal length
             #
-            Fu = self.relImgCoords2ImgPlaneCoords(vps[0], imageWidth, imageHeight, sf)
-            Fv = self.relImgCoords2ImgPlaneCoords(vps[1], imageWidth, imageHeight, sf)
-
             f = self.computeFocalLength(Fu, Fv, P)
 
             if f is None:
@@ -1600,8 +1570,8 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         self.report({'INFO'}, "Camera focal length set to " + str(fMm))
 
         # move principal point of the blender camera
-        cam.data.shift_x = -1 * P[0]
-        cam.data.shift_y = -1 * P[1]
+        cam.data.shift_x = -P.x
+        cam.data.shift_y = -P.y
 
         #
         # set the camera background image
