@@ -95,6 +95,7 @@ class BLAM_OT_project_bg_onto_mesh(bpy.types.Operator):
 
         # compute a projection matrix transforming
         # points in camera space to points in NDC
+        fov = cam.data.angle
         near = cam.data.clip_start
         far = cam.data.clip_end
         sx = 2 * cam.data.shift_x
@@ -104,13 +105,11 @@ class BLAM_OT_project_bg_onto_mesh(bpy.types.Operator):
         ry = rs.resolution_y
         sf = cam.data.sensor_fit
         if sf == 'AUTO' and rx < ry or sf == 'VERTICAL':
-            fov = cam.data.angle
             aspect = rx / ry
             h = tan(0.5 * fov)
             w = aspect * h
             sx /= aspect
         else:
-            fov = cam.data.angle
             aspect = ry / rx
             w = tan(0.5 * fov)
             h = aspect * w
@@ -339,14 +338,14 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
         b = origin - p2
         return a.dot(b)
 
-    def evalEq27(self, l):
-        return self.C4 * l**4 + self.C3 * l**3 + self.C2 * l**2 + self.C1 * l + self.C0
+    # def evalEq27(self, l):
+    #     return self.C4 * l**4 + self.C3 * l**3 + self.C2 * l**2 + self.C1 * l + self.C0
 
-    def evalEq28(self, l):
-        return self.B4 * l**4 + self.B3 * l**3 + self.B2 * l**2 + self.B1 * l + self.B0
+    # def evalEq28(self, l):
+    #     return self.B4 * l**4 + self.B3 * l**3 + self.B2 * l**2 + self.B1 * l + self.B0
 
-    def evalEq29(self, l):
-        return self.D3 * l**3 + self.D2 * l**2 + self.D1 * l + self.D0
+    # def evalEq29(self, l):
+    #     return self.D3 * l**3 + self.D2 * l**2 + self.D1 * l + self.D0
 
     def worldToCameraSpace(self, verts):
 
@@ -426,7 +425,7 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
         #
         # solve eq 29 for lambdaD, i.e the depth in camera space of vertex D.
         #
-        roots = [r.real if r.imag == 0 else complex(r) for r in np.roots([self.D3, self.D2, self.D1, self.D0])]
+        roots = np.roots([self.D3, self.D2, self.D1, self.D0])
         # print("Eq 29 Roots", roots)
 
         # choose one of the three computed roots. Tan, Sullivan and Baker propose
@@ -445,21 +444,21 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
 
             # print("Root", root)
 
-            if isinstance(root, complex):
+            if root.imag != 0:
                 # complex root. do nothing
                 continue
-            elif root <= 0:
+            elif root.real <= 0:
                 # non-positive root. do nothing
                 continue
 
             # compute depth values lambdaA-D based on the current root
-            lambdaD = root
+            lambdaD = root.real
             self.lambdaA = 1  # arbitrarily set to 1
-            numLambdaA = (Qad * lambdaD - 1.0)
-            denLambdaA = (Qbd * lambdaD - Qab)
+            numLambdaA = Qad * lambdaD - 1.0
+            denLambdaA = Qbd * lambdaD - Qab
             self.lambdaB = numLambdaA / denLambdaA
-            numLambdaC = (Qad * lambdaD - lambdaD * lambdaD)
-            denLambdaC = (Qac - Qcd * lambdaD)
+            numLambdaC = Qad * lambdaD - lambdaD * lambdaD
+            denLambdaC = Qac - Qcd * lambdaD
             self.lambdaC = numLambdaC / denLambdaC
             self.lambdaD = lambdaD
 
@@ -477,7 +476,7 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
 
             if minError is None or meanError < minError:
                 minError = meanError
-                chosenRoot = root
+                chosenRoot = root.real
 
         if chosenRoot is None:
             self.report({'ERROR'}, "No appropriate root found.")
