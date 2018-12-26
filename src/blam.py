@@ -588,7 +588,7 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
                     facesContainingEdge.append(f)
 
             # sanity check. an edge can be shared by at most two faces.
-            assert(len(facesContainingEdge) <= 2 and len(facesContainingEdge) >= 0)
+            assert(0 <= len(facesContainingEdge) <= 2)
 
             edgeIsShared = (len(facesContainingEdge) == 2)
 
@@ -662,8 +662,8 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
             lambda11 = v11.z
             # print(faces, f0, f1)
 
-            assert(f0Idx >= 0 and f0Idx < numFaces)
-            assert(f1Idx >= 0 and f1Idx < numFaces)
+            assert(0 <= f0Idx < numFaces)
+            assert(0 <= f1Idx < numFaces)
 
             # vert 0
             vert0MatrixRow = [0] * (numQuadFaces - 1)
@@ -731,7 +731,7 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
         for vs in vertsToMergeByOriginalIdx.values():
 
             for idx in vs:
-                assert(idx >= 0 and idx < numFaces * 4)
+                assert(0 <= idx < numFaces * 4)
 
             for vsRef in vertsToMergeByOriginalIdx.values():
                 if vs != vsRef:
@@ -1410,7 +1410,7 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         # sanity check: M should be a pure rotation matrix,
         # so its determinant should be 1
         eps = 0.00001
-        if 1.0 - M.determinant() < -eps or 1.0 - M.determinant() > eps:
+        if abs(1.0 - M.determinant()) > eps:
             self.report({'ERROR'}, "Non unit rotation matrix determinant: " + str(M.determinant()))
             # return {'CANCELLED'}
 
