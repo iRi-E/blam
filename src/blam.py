@@ -302,7 +302,7 @@ class BLAM_OT_project_bg_onto_mesh(bpy.types.Operator):
             try:
                 img = bpy.data.images.load(path)
             except RuntimeError:
-                self.report({'ERROR'}, "Cannot load image %s" % path)
+                self.report({'ERROR'}, "Cannot load image: '{}'".format(path))
                 return {'CANCELLED'}
         else:
             # shouldnt end up here
@@ -499,7 +499,7 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
         pD = qHatD * self.lambdaD
 
         meanError, maxError = self.getQuadError(pA, pB, pC, pD)
-        # self.report({'INFO'}, "Error: " + str(meanError) + " (" + str(maxError) + ")")
+        # self.report({'INFO'}, "Error: {} ({})".format(meanError, maxError))
 
         return [pA, pB, pC, pD]
 
@@ -1389,7 +1389,7 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         # so its determinant should be 1
         eps = 0.00001
         if abs(1.0 - M.determinant()) > eps:
-            self.report({'ERROR'}, "Non unit rotation matrix determinant: " + str(M.determinant()))
+            self.report({'ERROR'}, "Non unit rotation matrix determinant: {}".format(M.determinant()))
             # return {'CANCELLED'}
 
         # align the camera to the coordinate axes as specified
@@ -1410,7 +1410,7 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         else:
             fMm = cam.data.sensor_width * f
         cam.data.lens = fMm
-        self.report({'INFO'}, "Camera focal length set to " + str(fMm))
+        self.report({'INFO'}, "Camera focal length set to {}".format(fMm))
 
         # move principal point of the blender camera
         cam.data.shift_x = -P.x
