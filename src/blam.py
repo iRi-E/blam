@@ -1187,21 +1187,18 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         # print("verts", verts)
         assert(len(verts) == 3)
 
-        A = verts[0]
-        B = verts[1]
-        C = verts[2]
-
+        A, B, C = verts
         # print("A, B, C", A, B, C)
 
-        a, b = A
-        c, d = B
-        e, f = C
+        # symmetric form:
+        #  H = (A.dot(B-C)*A + B.dot(C-A)*B + C.dot(A-B)*C).orthogonal() / (A.cross(B) + B.cross(C) + C.cross(A))
 
-        N = b*c + d*e + f*a - c*f - b*e - a*d
-        x = ((d-f)*b*b + (f-b)*d*d + (b-d)*f*f + a*b*(c-e) + c*d*(e-a) + e*f*(a-c)) / N
-        y = ((e-c)*a*a + (a-e)*c*c + (c-a)*e*e + a*b*(f-d) + c*d*(b-f) + e*f*(d-b)) / N
+        # use asymmetric form here to simplify the computation
+        cotA = (A-B).dot(A-C) / (A-B).cross(A-C)
+        H = A + cotA * (B-C).orthogonal()
+        # print("cotA", cotA, "H", H)
 
-        return Vector((x, y))
+        return H
 
     def imgAspect(self, imageWidth, imageHeight, sensor_fit):
         if sensor_fit == 'AUTO' and imageWidth < imageHeight or sensor_fit == 'VERTICAL':
