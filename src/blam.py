@@ -354,10 +354,10 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
                      "Relies on the active camera being properly calibrated"
     bl_options = {'REGISTER', 'UNDO'}
 
-    def evalEq17(self, origin, p1, p2):
-        a = origin - p1
-        b = origin - p2
-        return a.dot(b)
+    # def evalEq17(self, origin, p1, p2):
+    #     a = origin - p1
+    #     b = origin - p2
+    #     return a.dot(b)
 
     # def evalEq27(self, l):
     #     return self.C4 * l**4 + self.C3 * l**3 + self.C2 * l**2 + self.C1 * l + self.C0
@@ -507,12 +507,13 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
         return vertices
 
     def getQuadError(self, pA, pB, pC, pD):
-        orthABD = self.evalEq17(pA, pB, pD)
-        orthABC = self.evalEq17(pB, pA, pC)
-        orthBCD = self.evalEq17(pC, pB, pD)
-        orthACD = self.evalEq17(pD, pA, pC)
+        # evaluate (17)
+        orthA = (pA - pB).dot(pA - pD)
+        orthB = (pB - pA).dot(pB - pC)
+        orthC = (pC - pB).dot(pC - pD)
+        orthD = (pD - pA).dot(pD - pC)
 
-        absErrors = [abs(orthABD), abs(orthABC), abs(orthBCD), abs(orthACD)]
+        absErrors = [abs(orthA), abs(orthB), abs(orthC), abs(orthD)]
         maxError = max(absErrors)
         meanError = 0.25 * sum(absErrors)
         # print("absErrors", absErrors, "meanError", meanError)
