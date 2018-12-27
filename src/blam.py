@@ -456,7 +456,6 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
         # orthogonal as possible", in this implementation the positive real
         # root that minimizes the quad orthogonality error is chosen instead.
 
-        chosenRoot = None
         minError = None
 
         # print()
@@ -472,57 +471,40 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
                 # non-positive root. do nothing
                 continue
 
-            # compute depth values lambdaA-D based on the current root
-            lambdaD = root.real
-            self.lambdaA = 1  # arbitrarily set to 1
-            numLambdaA = Qad * lambdaD - 1.0
-            denLambdaA = Qbd * lambdaD - Qab
-            self.lambdaB = numLambdaA / denLambdaA
-            numLambdaC = Qad * lambdaD - lambdaD * lambdaD
-            denLambdaC = Qac - Qcd * lambdaD
-            self.lambdaC = numLambdaC / denLambdaC
-            self.lambdaD = lambdaD
+            # compute depth values lambdaA-D based on the current root (eq 26)
+            lambdaD = float(root.real)  # convert from numpy.float64
+            lambdaA = 1  # arbitrarily set to 1
+            lambdaB = (Qad * lambdaD - 1.0) / (Qbd * lambdaD - Qab)
+            lambdaC = (Qad * lambdaD - lambdaD * lambdaD) / (Qac - Qcd * lambdaD)
 
             # print("lambdaA", numLambdaA, "/", denLambdaA)
             # print("lambdaC", numLambdaC, "/", denLambdaC)
 
             # compute vertex positions
-            pA = qHatA * self.lambdaA
-            pB = qHatB * self.lambdaB
-            pC = qHatC * self.lambdaC
-            pD = qHatD * self.lambdaD
+            pA = lambdaA * qHatA
+            pB = lambdaB * qHatB
+            pC = lambdaC * qHatC
+            pD = lambdaD * qHatD
 
             # compute the mean orthogonality error for the resulting quad
             meanError, maxError = self.getQuadError(pA, pB, pC, pD)
+            # print("root", root.real, "error", meanError, maxError)
 
             if minError is None or meanError < minError:
                 minError = meanError
-                chosenRoot = root.real
+                vertices = [pA, pB, pC, pD]
+                # chosenRoot = root.real
 
-        if chosenRoot is None:
+        if minError is None:
             self.report({'ERROR'}, "No appropriate root found.")
             return  # TODO cancel properly
 
         # print("Chosen root", chosenRoot)
 
-        #
-        # compute and return the final vertex positions from equation (16)
-        #
-        lambdaD = chosenRoot
-        self.lambdaA = 1  # arbitrarily set to 1
-        self.lambdaB = (Qad * lambdaD - 1.0) / (Qbd * lambdaD - Qab)
-        self.lambdaC = (Qad * lambdaD - lambdaD * lambdaD) / (Qac - Qcd * lambdaD)
-        self.lambdaD = lambdaD
-
-        pA = qHatA * self.lambdaA
-        pB = qHatB * self.lambdaB
-        pC = qHatC * self.lambdaC
-        pD = qHatD * self.lambdaD
-
-        meanError, maxError = self.getQuadError(pA, pB, pC, pD)
+        # meanError, maxError = self.getQuadError(*vertices)
         # self.report({'INFO'}, "Error: {} ({})".format(meanError, maxError))
 
-        return [pA, pB, pC, pD]
+        return vertices
 
     def getQuadError(self, pA, pB, pC, pD):
         orthABD = self.evalEq17(pA, pB, pD)
