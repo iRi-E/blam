@@ -1046,21 +1046,18 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         '''
 
         # compute Puv, the orthogonal projection of P onto FuFv
-        dirFuFv = (Fu - Fv).normalized()
         FvP = P - Fv
-        proj = dirFuFv.dot(FvP)
-        Puv = proj * dirFuFv + Fv
+        FvFu = Fu - Fv
+        FvPuv = FvP.dot(FvFu) / FvFu.length_squared * FvFu
+        Puv = Fv + FvPuv
 
-        PPuv = (P - Puv).length
+        PuvFu = Fu - Puv
+        PPuv = Puv - P
+        # print("FvFu", FvFu.length, "FvPuv + PuvFu", FvPuv.length + PuvFu.length)
 
-        FvPuv = (Fv - Puv).length
-        FuPuv = (Fu - Puv).length
-        # FuFv = (Fu - Fv).length
-        # print("FuFv", FuFv, "FvPuv + FuPuv", FvPuv + FuPuv)
-
-        fSq = FvPuv * FuPuv - PPuv * PPuv
-        # print("FuPuv", FuPuv, "FvPuv", FvPuv, "PPuv", PPuv, "OPuv", FvPuv * FuPuv)
-        # print("fSq = ", fSq, " = ", FvPuv * FuPuv, " - ", PPuv * PPuv)
+        fSq = FvPuv.length * PuvFu.length - PPuv.length_squared
+        # print("FvPuv", FvPuv.length, "PuvFu", PuvFu.length, "PPuv", PPuv.length, "OPuv", FvPuv.length * PuvFu.length)
+        # print("fSq = ", fSq, " = ", FvPuv.length * PuvFu.length, " - ", PPuv.length_squared)
         if fSq < 0:
             return None
         f = sqrt(fSq)
