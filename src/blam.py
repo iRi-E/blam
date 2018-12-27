@@ -19,7 +19,7 @@
 
 import bpy
 from mathutils import Vector, Matrix, Euler
-from math import tan, sqrt, radians
+from math import sqrt, radians
 import numpy as np
 
 bl_info = {
@@ -97,7 +97,7 @@ class BLAM_OT_project_bg_onto_mesh(bpy.types.Operator):
 
         # compute a projection matrix transforming
         # points in camera space to points in NDC
-        fov = cam.data.angle
+        f = cam.data.lens
         near = cam.data.clip_start
         far = cam.data.clip_end
         sx = 2 * cam.data.shift_x
@@ -106,15 +106,19 @@ class BLAM_OT_project_bg_onto_mesh(bpy.types.Operator):
         rx = rs.resolution_x
         ry = rs.resolution_y
         sf = cam.data.sensor_fit
+
+        if sf == 'VERTICAL':
+            w = h = 0.5 * cam.data.sensor_height / f
+        else:
+            w = h = 0.5 * cam.data.sensor_width / f
+
         if sf == 'AUTO' and rx < ry or sf == 'VERTICAL':
             aspect = rx / ry
-            h = tan(0.5 * fov)
-            w = aspect * h
+            w *= aspect
             sx /= aspect
         else:
             aspect = ry / rx
-            w = tan(0.5 * fov)
-            h = aspect * w
+            h *= aspect
             sy /= aspect
 
         pm = Matrix()
@@ -1220,10 +1224,10 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         return Vector((x, y))
 
     def imgAspect(self, imageWidth, imageHeight, sensor_fit):
-        if sensor_fit == 'AUTO' and imageWidth >= imageHeight or sensor_fit == 'HORIZONTAL':
-            return (1, imageHeight / imageWidth)
-        else:
+        if sensor_fit == 'AUTO' and imageWidth < imageHeight or sensor_fit == 'VERTICAL':
             return (imageWidth / imageHeight, 1)
+        else:
+            return (1, imageHeight / imageWidth)
 
     def relImgCoords2ImgPlaneCoords(self, pt, imageWidth, imageHeight, sensor_fit):
         sw, sh = self.imgAspect(imageWidth, imageHeight, sensor_fit)
