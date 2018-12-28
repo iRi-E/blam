@@ -875,7 +875,7 @@ class BLAM_OT_reconstruct_mesh_with_rects(bpy.types.Operator):
         return True
 
     def execute(self, context):
-        props = bpy.context.scene.blam
+        props = context.scene.blam
 
         #
         # get the active camera
