@@ -1155,9 +1155,9 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
             # a point on the line
             p = line[0]
             # a unit vector parallel to the line
-            dir = (line[1] - line[0]).normalized()
+            d = (line[1] - line[0]).normalized()
             # a unit vector perpendicular to the line
-            n = dir.orthogonal()
+            n = d.orthogonal()
             matrixRows.append(n)
             rhsRows.append([p.dot(n)])
 
