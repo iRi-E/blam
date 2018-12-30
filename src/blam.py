@@ -1054,6 +1054,7 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         :param Fu: the first vanishing point in normalized image coordinates.
         :param Fv: the second vanishing point in normalized image coordinates.
         :param f: the relative focal length.
+        :param P: the center of projection in normalized image coordinates.
         :return: The matrix Moc
         '''
         Fu -= P
