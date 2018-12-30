@@ -1091,8 +1091,8 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         '''Modifies the original camera transform to make the coordinate axes line
         up as specified.
         :param M: the original camera rotation matrix
-        :param ax1: The index of the axis to align with the first layer segments.
-        :param ax2: The index of the axis to align with the second layer segments.
+        :param ax1: The identifier of the axis to align with the first layer segments.
+        :param ax2: The identifier of the axis to align with the second layer segments.
         :return: The final camera rotation matrix.
         '''
         # line up the axes as specified in the ui
@@ -1113,22 +1113,22 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         # +y, -z, +x
         # +z, +y, +x
 
-        if ax1 == 0 and ax2 == 1:
+        if ax1 == 'X' and ax2 == 'Y':
             # print("x, y")
             pass
-        elif ax1 == 1 and ax2 == 0:
+        elif ax1 == 'Y' and ax2 == 'X':
             # print("y, x")
             M = zn90Rot @ M
-        elif ax1 == 0 and ax2 == 2:
+        elif ax1 == 'X' and ax2 == 'Z':
             # print("x, z")
             M = xn90Rot @ M
-        elif ax1 == 2 and ax2 == 0:
+        elif ax1 == 'Z' and ax2 == 'X':
             # print("z, x")
             M = xn90Rot @ zn90Rot @ M
-        elif ax1 == 1 and ax2 == 2:
+        elif ax1 == 'Y' and ax2 == 'Z':
             # print("y, z")
             M = y90Rot @ zn90Rot @ M
-        elif ax1 == 2 and ax2 == 1:
+        elif ax1 == 'Z' and ax2 == 'Y':
             # print("z, y")
             M = y90Rot @ M
 
@@ -1233,18 +1233,14 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
                 self.report({'ERROR'}, "\"One Vanishing Point\" method cannot compute the optical center position.")
                 return {'CANCELLED'}
 
-            upAxisIndex = ['X', 'Y', 'Z'].index(props.up_axis)
-            vp1AxisIndex = ['X', 'Y', 'Z'].index(props.vp1_axis)
-            vp2AxisIndex = (set([0, 1, 2]) - set([upAxisIndex, vp1AxisIndex])).pop()
-            vpAxisIndices = [vp1AxisIndex, vp2AxisIndex]
+            vp2_axis = (set(['X', 'Y', 'Z']) - set([props.vp1_axis, props.up_axis])).pop()
+            vpAxces = [props.vp1_axis, vp2_axis]
         else:
             if props.vp1_axis == props.vp2_axis:
                 self.report({'ERROR'}, "The two different vanishing points cannot be computed from the same axis.")
                 return {'CANCELLED'}
 
-            vp1AxisIndex = ['X', 'Y', 'Z'].index(props.vp1_axis)
-            vp2AxisIndex = ['X', 'Y', 'Z'].index(props.vp2_axis)
-            vpAxisIndices = [vp1AxisIndex, vp2AxisIndex]
+            vpAxces = [props.vp1_axis, props.vp2_axis]
 
         #
         # gather lines for each vanishing point
@@ -1368,7 +1364,7 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         # order vanishing points along the image x axis
         if Fv.x < Fu.x:
             Fu, Fv = Fv, Fu
-            vpAxisIndices.reverse()
+            vpAxces.reverse()
         print(Fu, Fv, f)
 
         # initial orientation based on the vanishing points and focal length
@@ -1382,7 +1378,7 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
             # return {'CANCELLED'}
 
         # align the camera to the coordinate axes as specified
-        M = self.alignCoordinateAxes(M, vpAxisIndices[0], vpAxisIndices[1])
+        M = self.alignCoordinateAxes(M, vpAxces[0], vpAxces[1])
         # apply the transform to the camera
         cam.matrix_world = M
 
@@ -1447,8 +1443,8 @@ class BLAM_OT_setup_grease_pencil_layers(bpy.types.Operator):
                 return {'CANCELLED'}
 
             if  props.use_horizon_segment:
-                axis = (set(['X', 'Y', 'Z']) - set([props.vp1_axis, props.up_axis])).pop()
-                axisNames.append((axis, "Horizon"))
+                vp2_axis = (set(['X', 'Y', 'Z']) - set([props.vp1_axis, props.up_axis])).pop()
+                axisNames.append((vp2_axis, "Horizon"))
         elif props.calibration_type == 'TWO_VP':
             if props.vp1_axis == props.vp2_axis:
                 self.report({'ERROR'}, "The two different vanishing points cannot be computed from the same axis.")
@@ -1456,8 +1452,8 @@ class BLAM_OT_setup_grease_pencil_layers(bpy.types.Operator):
 
             axisNames.append(self.axisName(props.vp2_axis))
             if props.optical_center_type == 'COMPUTE':
-                axis = (set(['X', 'Y', 'Z']) - set([props.vp1_axis, props.vp2_axis])).pop()
-                axisNames.append(self.axisName(axis))
+                up_axis = (set(['X', 'Y', 'Z']) - set([props.vp1_axis, props.vp2_axis])).pop()
+                axisNames.append(self.axisName(up_axis))
 
         activeSpace.grease_pencil_source = 'CLIP'
         context.scene.tool_settings.annotation_stroke_placement_view2d = 'CURSOR'
