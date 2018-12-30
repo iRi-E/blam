@@ -25,7 +25,7 @@ import numpy as np
 bl_info = {
     'name': 'BLAM for Blender 2.8 - The Blender camera calibration toolkit',
     'author': 'Per Gantelius, IRIE Shinsuke',
-    'version': (0, 7, 1),
+    'version': (0, 8, 0),
     'blender': (2, 80, 0),
     'location': 'Move Clip Editor > Tools > Static Camera Calibration and 3D View > Tool Shelf > Photo Modeling Tools',
     'description': 'Reconstruct 3D geometry and estimate camera orientation and focal length based on photographs',
