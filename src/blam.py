@@ -1209,27 +1209,26 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         # check settings
         #
         if singleVp:
-            upAxisIndex = ['X', 'Y', 'Z'].index(props.up_axis)
-            vp1AxisIndex = ['X', 'Y', 'Z'].index(props.vp1_axis)
-
-            if upAxisIndex == vp1AxisIndex:
+            if props.vp1_axis == props.up_axis:
                 self.report({'ERROR'}, "The up axis cannot be parallel to the axis pointing to the vanishing point.")
                 return {'CANCELLED'}
-            vp2AxisIndex = (set([0, 1, 2]) - set([upAxisIndex, vp1AxisIndex])).pop()
-            vpAxisIndices = [vp1AxisIndex, vp2AxisIndex]
-
             if props.optical_center_type == 'COMPUTE':
                 self.report({'ERROR'}, "\"One Vanishing Point\" method cannot compute the optical center position.")
                 return {'CANCELLED'}
+
+            upAxisIndex = ['X', 'Y', 'Z'].index(props.up_axis)
+            vp1AxisIndex = ['X', 'Y', 'Z'].index(props.vp1_axis)
+            vp2AxisIndex = (set([0, 1, 2]) - set([upAxisIndex, vp1AxisIndex])).pop()
+            vpAxisIndices = [vp1AxisIndex, vp2AxisIndex]
         else:
+            if props.vp1_axis == props.vp2_axis:
+                self.report({'ERROR'}, "The two different vanishing points cannot be computed from the same axis.")
+                return {'CANCELLED'}
+
             vp1AxisIndex = ['X', 'Y', 'Z'].index(props.vp1_axis)
             vp2AxisIndex = ['X', 'Y', 'Z'].index(props.vp2_axis)
             vpAxisIndices = [vp1AxisIndex, vp2AxisIndex]
             setBgImg = props.set_cambg
-
-            if vpAxisIndices[0] == vpAxisIndices[1]:
-                self.report({'ERROR'}, "The two different vanishing points cannot be computed from the same axis.")
-                return {'CANCELLED'}
 
         #
         # gather lines for each vanishing point
@@ -1423,20 +1422,22 @@ class BLAM_OT_setup_grease_pencil_layers(bpy.types.Operator):
 
         axisNames = [self.axisName(props.vp1_axis)]
 
-        if props.calibration_type == 'ONE_VP' and props.use_horizon_segment:
+        if props.calibration_type == 'ONE_VP':
             if props.vp1_axis == props.up_axis:
                 self.report({'ERROR'}, "The up axis cannot be parallel to the axis pointing to the vanishing point.")
                 return {'CANCELLED'}
-            axis = (set(['X', 'Y', 'Z']) - set([props.vp1_axis, props.up_axis])).pop()
-            axisNames.append((axis, "Horizon"))
-
             if props.optical_center_type == 'COMPUTE':
                 self.report({'ERROR'}, "\"One Vanishing Point\" method cannot compute the optical center position.")
                 return {'CANCELLED'}
+
+            if  props.use_horizon_segment:
+                axis = (set(['X', 'Y', 'Z']) - set([props.vp1_axis, props.up_axis])).pop()
+                axisNames.append((axis, "Horizon"))
         elif props.calibration_type == 'TWO_VP':
             if props.vp1_axis == props.vp2_axis:
                 self.report({'ERROR'}, "The two different vanishing points cannot be computed from the same axis.")
                 return {'CANCELLED'}
+
             axisNames.append(self.axisName(props.vp2_axis))
             if props.optical_center_type == 'COMPUTE':
                 axis = (set(['X', 'Y', 'Z']) - set([props.vp1_axis, props.vp2_axis])).pop()
