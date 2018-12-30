@@ -1245,7 +1245,6 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
             vp1AxisIndex = ['X', 'Y', 'Z'].index(props.vp1_axis)
             vp2AxisIndex = ['X', 'Y', 'Z'].index(props.vp2_axis)
             vpAxisIndices = [vp1AxisIndex, vp2AxisIndex]
-            setBgImg = props.set_cambg
 
         #
         # gather lines for each vanishing point
