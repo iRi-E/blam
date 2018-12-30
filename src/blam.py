@@ -1054,11 +1054,11 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         :param P: the center of projection in normalized image coordinates.
         :return: The matrix Moc
         '''
-        Fu -= P
-        Fv -= P
+        PFu = Fu - P
+        PFv = Fv - P
 
-        OFu = Vector((Fu.x, Fu.y, f))
-        OFv = Vector((Fv.x, Fv.y, f))
+        OFu = Vector((PFu.x, PFu.y, f))
+        OFv = Vector((PFv.x, PFv.y, f))
 
         # print("matrix dot", OFu.dot(OFv))
 
