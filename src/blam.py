@@ -48,13 +48,11 @@ class BLAM_PT_photo_modeling_tools(bpy.types.Panel):
         layout = self.layout
         props = context.scene.blam
 
-        row = layout.row()
-        box = row.box()
+        col = layout.column()
+        box = col.box()
         box.operator("blam.reconstruct_mesh_with_rects", icon='MESH_CUBE')
         box.prop(props, "separate_faces")
-
-        row = layout.row()
-        box = row.box()
+        box = col.box()
         box.operator("blam.project_bg_onto_mesh", icon='MOD_UVPROJECT')
         box.prop(props, "projection_method")
 
