@@ -970,31 +970,30 @@ class BLAM_PT_camera_calibration(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         props = context.scene.blam
+        singleVp = props.calibration_type == 'ONE_VP'
 
         layout.prop(props, "calibration_type")
 
-        row = layout.row()
-        box = row.box()
+        col = layout.column()
+        box = col.box()
         box.label(text="1st Vanishing Point")
         box.prop(props, "vp1_axis", text="Parallel to")
 
-        row = layout.row()
-        box = row.box()
-        singleVp = props.calibration_type == 'ONE_VP'
+        box = col.box()
         if singleVp:
-            box.label(text="Horizon line")
+            box.label(text="Roll Angle")
             box.prop(props, "use_horizon_segment")
             # box.label(text="An optional single line segment parallel to the horizon.")
         else:
             box.label(text="2nd Vanishing Point")
             box.prop(props, "vp2_axis", text="Parallel to")
 
-        row = layout.row()
-        # row.enabled = singleVp
         if singleVp:
-            row.prop(props, "up_axis")
+            col.prop(props, "up_axis")
         else:
-            row.prop(props, "optical_center_type")
+            axis = (set(['X', 'Y', 'Z']) - set([props.vp1_axis, props.vp2_axis])).pop()
+            col.label(text="Up Axis: {} axis".format(axis))
+        col.prop(props, "optical_center_type")
         # TODO layout.prop(props, "vp1_only")
 
         layout.operator("blam.setup_grease_pencil_layers", icon='GREASEPENCIL')
@@ -1028,10 +1027,10 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         '''
 
         # find the second vanishing point
-        # TODO 1: take principal point into account here
-        # TODO 2: if the first vanishing point coincides with the image center,
-        #        these lines won't work, but this case should be handled somehow.
-        k = -(Fu.length_squared + f**2) / Fu.dot(horizonDir)
+        # TODO: if the first vanishing point coincides with the principal point,
+        #       these lines won't work, but this case should be handled somehow.
+        PFu = Fu - P
+        k = -(PFu.length_squared + f**2) / PFu.dot(horizonDir)
         Fv = Fu + k * horizonDir
 
         return Fv
@@ -1184,11 +1183,7 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         vp = Vector(np.linalg.solve(R, b))
         return vp
 
-    def computeTriangleOrthocenter(self, verts):
-        # print("verts", verts)
-        assert(len(verts) == 3)
-
-        A, B, C = verts
+    def computeTriangleOrthocenter(self, A, B, C):
         # print("A, B, C", A, B, C)
 
         # symmetric form:
@@ -1241,6 +1236,10 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
                 return {'CANCELLED'}
             vp2AxisIndex = (set([0, 1, 2]) - set([upAxisIndex, vp1AxisIndex])).pop()
             vpAxisIndices = [vp1AxisIndex, vp2AxisIndex]
+
+            if props.optical_center_type == 'COMPUTE':
+                self.report({'ERROR'}, "\"One Vanishing Point\" method cannot compute the optical center position.")
+                return {'CANCELLED'}
         else:
             vp1AxisIndex = ['X', 'Y', 'Z'].index(props.vp1_axis)
             vp2AxisIndex = ['X', 'Y', 'Z'].index(props.vp2_axis)
@@ -1294,21 +1293,36 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
 
         #
         # get the principal point P in image plane coordinates
-        # TODO: get the value from the camera data panel,
-        # currently always using the image center
         #
         imageWidth = activeSpace.clip.size[0]
         imageHeight = activeSpace.clip.size[1]
         sf = cam.data.sensor_fit
+        P = Vector((0, 0))  # in the middle of the image by default
 
-        # principal point in image plane coordinates.
-        # in the middle of the image by default
-        P = Vector((0, 0))
+        if props.optical_center_type == 'CAMDATA':
+            # get the principal point location from camera data
+            P = Vector(activeSpace.clip.tracking.camera.principal)
+            # print("camera data optical center", P[:])
+            P.x /= imageWidth
+            P.y /= imageHeight
+            # print("normlz. optical center", P[:])
+            P = self.relImgCoords2ImgPlaneCoords(P, imageWidth, imageHeight, sf)
 
+        #
+        # calibration (compute Fu, Fv, f, P)
+        #
         if singleVp:
             #
             # calibration using a single vanishing point
+            #   (given: vp1, f, P, horizon  ->  compute: Fu, Fv)
             #
+
+            # get the current relative focal length
+            fAbs = activeSpace.clip.tracking.camera.focal_length
+            sensorWidth = activeSpace.clip.tracking.camera.sensor_width
+            f = fAbs / sensorWidth
+            # print("fAbs", fAbs, "f rel", f)
+
             # compute the horizon direction
             horizDir = Vector((1.0, 0.0)).normalized()  # flat horizon by default
             if useHorizonSegment:
@@ -1317,56 +1331,30 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
                 horizDir = Vector((-ax * xHorizDir, -ay * yHorizDir)).normalized()
             # print("horizDir", horizDir)
 
-            # compute the vanishing point location
+            # compute the two vanishing points
             vp1 = self.computeIntersectionPointForLineSegments(vpLineSets[0])
-
-            # get the current relative focal length
-            fAbs = activeSpace.clip.tracking.camera.focal_length
-            sensorWidth = activeSpace.clip.tracking.camera.sensor_width
-
-            f = fAbs / sensorWidth
-            # print("fAbs", fAbs, "f rel", f)
             Fu = self.relImgCoords2ImgPlaneCoords(vp1, imageWidth, imageHeight, sf)
             Fv = self.computeSecondVanishingPoint(Fu, f, P, horizDir)
-
-            # order vanishing points along the image x axis
-            if Fv.x < Fu.x:
-                Fu, Fv = Fv, Fu
-                vpAxisIndices.reverse()
         else:
             #
             # calibration using two vanishing points
+            #   (given: vp1, vp2, P or vp3  ->  compute: Fu, Fv, f)
             #
-            if props.optical_center_type == 'CAMDATA':
-                # get the principal point location from camera data
-                P = Vector(activeSpace.clip.tracking.camera.principal)
-                # print("camera data optical center", P[:])
-                P.x /= imageWidth
-                P.y /= imageHeight
-                # print("normlz. optical center", P[:])
-                P = self.relImgCoords2ImgPlaneCoords(P, imageWidth, imageHeight, sf)
-            elif props.optical_center_type == 'COMPUTE':
-                if len(vpLineSets) < 3:
-                    self.report({'ERROR'}, "A third grease pencil layer is needed to compute the optical center.")
-                    return {'CANCELLED'}
-                # compute the principal point using a vanishing point from a third gp layer.
-                # this computation does not rely on the order of the line sets
-                vps = [self.computeIntersectionPointForLineSegments(ls) for ls in vpLineSets]
-                vps = [self.relImgCoords2ImgPlaneCoords(vp, imageWidth, imageHeight, sf) for vp in vps]
-                P = self.computeTriangleOrthocenter(vps)
-            else:
-                # assume optical center in image midpoint
-                pass
 
             # compute the two vanishing points
             vps = [self.computeIntersectionPointForLineSegments(vpLineSets[i]) for i in range(2)]
             Fu = self.relImgCoords2ImgPlaneCoords(vps[0], imageWidth, imageHeight, sf)
             Fv = self.relImgCoords2ImgPlaneCoords(vps[1], imageWidth, imageHeight, sf)
 
-            # order vanishing points along the image x axis
-            if Fv.x < Fu.x:
-                Fu, Fv = Fv, Fu
-                vpAxisIndices.reverse()
+            if props.optical_center_type == 'COMPUTE':
+                if len(vpLineSets) < 3:
+                    self.report({'ERROR'}, "A third grease pencil layer is needed to compute the optical center.")
+                    return {'CANCELLED'}
+                # compute the principal point using a vanishing point from a third gp layer.
+                # this computation does not rely on the order of the line sets
+                vp3 = self.computeIntersectionPointForLineSegments(vpLineSets[2])
+                Fw = self.relImgCoords2ImgPlaneCoords(vp3, imageWidth, imageHeight, sf)
+                P = self.computeTriangleOrthocenter(Fu, Fv, Fw)
 
             #
             # compute focal length
@@ -1380,7 +1368,13 @@ class BLAM_OT_calibrate_active_camera(bpy.types.Operator):
         #
         # compute camera orientation
         #
+
+        # order vanishing points along the image x axis
+        if Fv.x < Fu.x:
+            Fu, Fv = Fv, Fu
+            vpAxisIndices.reverse()
         print(Fu, Fv, f)
+
         # initial orientation based on the vanishing points and focal length
         M = self.computeCameraRotationMatrix(Fu, Fv, f, P)
 
@@ -1454,6 +1448,10 @@ class BLAM_OT_setup_grease_pencil_layers(bpy.types.Operator):
                 return {'CANCELLED'}
             axis = (set(['X', 'Y', 'Z']) - set([props.vp1_axis, props.up_axis])).pop()
             axisNames.append((axis, "Horizon"))
+
+            if props.optical_center_type == 'COMPUTE':
+                self.report({'ERROR'}, "\"One Vanishing Point\" method cannot compute the optical center position.")
+                return {'CANCELLED'}
         elif props.calibration_type == 'TWO_VP':
             if props.vp1_axis == props.vp2_axis:
                 self.report({'ERROR'}, "The two different vanishing points cannot be computed from the same axis.")
@@ -1543,9 +1541,9 @@ class BLAMProps(bpy.types.PropertyGroup):
         default=True)
 
     use_horizon_segment: bpy.props.BoolProperty(
-        name="Compute from grease pencil stroke",
-        description="Extract the horizon angle from a single line segment in the second grease pencil layer. "
-                    "If unchecked, the horizon angle is set to 0",
+        name="Horizon Line",
+        description="Specify the camera roll angle by extracting the horizon angle from a single line segment "
+                    "in the second grease pencil layer. If unchecked, the camera roll angle is set to 0",
         default=True)
 
     # 3D reconstruction stuff
